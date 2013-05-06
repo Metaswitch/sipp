@@ -1250,10 +1250,10 @@ char * call::send_scene(int index, int *send_status, int *len)
 
   assert(call_socket);
 
-  if (call_socket->ss_congested) {
-    *send_status = -1;
-    return NULL;
-  }
+//  if (call_socket->ss_congested) {
+//    *send_status = -1;
+//    return NULL;
+//  }
 
   assert(call_scenario->messages[index]->send_scheme);
 
@@ -1513,7 +1513,7 @@ bool call::executeMessage(message *curmsg) {
     }
     
     msg_snd = send_scene(msg_index, &send_status, &msgLen);
-    if(send_status == -1 && errno == EWOULDBLOCK) {
+    if(send_status == -1 && ((call_socket != NULL && call_socket->ss_congested) || errno == EWOULDBLOCK)) {
       if (incr_cseq) --cseq;
       /* Have we set the timeout yet? */
       if (send_timeout) {

@@ -38,6 +38,7 @@
 #define GLOBALS_FULL_DEFINITION
 
 #include <dlfcn.h>
+#include <sys/epoll.h>
 #include "sipp.hpp"
 #include "assert.h"
 
@@ -101,7 +102,7 @@ struct sipp_option {
 #define SIPP_OPTION_ARGI 	   6
 #define SIPP_OPTION_TIME_SEC	   7
 #define SIPP_OPTION_FLOAT	   8
-#define SIPP_OPTION_BOOL	  10 
+#define SIPP_OPTION_BOOL	  10
 #define SIPP_OPTION_VERSION	  11
 #define SIPP_OPTION_TRANSPORT	  12
 #define SIPP_OPTION_NEED_SSL	  13
@@ -440,7 +441,7 @@ const char *sip_tls_error_string(SSL *ssl, int size) {
 int sip_tls_verify_callback(int ok , X509_STORE_CTX *store)
 {
   char data[512];
-  
+
   if (!ok) {
      X509 *cert = X509_STORE_CTX_get_current_cert(store);
 
@@ -489,7 +490,7 @@ int sip_tls_load_crls( SSL_CTX *ctx , char *crlfile)
 /************* Prepare the SSL context ************************/
 static ssl_init_status FI_init_ssl_context (void)
 {
-  sip_trp_ssl_ctx = SSL_CTX_new( TLSv1_method() ); 
+  sip_trp_ssl_ctx = SSL_CTX_new( TLSv1_method() );
   if ( sip_trp_ssl_ctx == NULL ) {
     ERROR("FI_init_ssl_context: SSL_CTX_new with TLSv1_method failed");
     return SSL_INIT_ERROR;
@@ -505,14 +506,14 @@ static ssl_init_status FI_init_ssl_context (void)
   /*  Load the trusted CA's */
   SSL_CTX_load_verify_locations(sip_trp_ssl_ctx, tls_cert_name, NULL);
   SSL_CTX_load_verify_locations(sip_trp_ssl_ctx_client, tls_cert_name, NULL);
-  
+
   /*  CRL load from application specified only if specified on the command line */
   if (strlen(tls_crl_name) != 0) {
     if(sip_tls_load_crls(sip_trp_ssl_ctx,tls_crl_name) == -1) {
       ERROR("FI_init_ssl_context: Unable to load CRL file (%s)", tls_crl_name);
       return SSL_INIT_ERROR;
     }
-  
+
     if(sip_tls_load_crls(sip_trp_ssl_ctx_client,tls_crl_name) == -1) {
       ERROR("FI_init_ssl_context: Unable to load CRL (client) file (%s)", tls_crl_name);
       return SSL_INIT_ERROR;
@@ -591,7 +592,7 @@ int send_nowait_tls(SSL *ssl, const void *msg, int len, int flags)
   fcntl(fd, F_SETFL , initial_fd_flags);
   return rc;
 }
-#endif 
+#endif
 
 int send_nowait(int s, const void *msg, int len, int flags)
 {
@@ -606,13 +607,13 @@ int send_nowait(int s, const void *msg, int len, int flags)
   //  fd_flags &= ~O_ACCMODE; // Remove the access mode from the value
   fd_flags |= O_NONBLOCK;
   fcntl(s, F_SETFL , fd_flags);
-  
+
   rc = send(s, msg, len, flags);
 
   fcntl(s, F_SETFL , initial_fd_flags);
 
   return rc;
-#endif 
+#endif
 }
 
 #ifdef USE_SCTP
@@ -796,11 +797,11 @@ int get_decimal_from_hex(char hex) {
 
 /******************** Recv Poll Processing *********************/
 
+int                  epollfd;
 int                  pollnfds;
-struct pollfd        pollfiles[SIPP_MAXFDS];
+struct epoll_event   epollfiles[SIPP_MAXFDS];
+struct epoll_event*  epollevents;
 struct sipp_socket  *sockets[SIPP_MAXFDS];
-
-static int pending_messages = 0;
 
 map<string, struct sipp_socket *>     map_perip_fd;
 
@@ -840,7 +841,7 @@ void print_stats_in_file(FILE * f, int last)
     time(&tim);
     fprintf(f, "  Timestamp: %s" SIPP_ENDL, ctime(&tim));
   }
-  
+
   /* Header line with global parameters */
   if (users >= 0) {
     sprintf(temp_str, "%d (%d ms)", users, duration);
@@ -851,7 +852,7 @@ void print_stats_in_file(FILE * f, int last)
   if( creationMode == MODE_SERVER) {
     fprintf
       (f,
-       "  Port   Total-time  Total-calls  Transport" 
+       "  Port   Total-time  Total-calls  Transport"
        SIPP_ENDL
        "  %-5d %6lu.%02lu s     %8llu  %s"
        SIPP_ENDL SIPP_ENDL,
@@ -876,7 +877,7 @@ void print_stats_in_file(FILE * f, int last)
        remote_port,
        TRANSPORT_TO_STRING(transport));
   }
-  
+
   /* 1st line */
   if(total_calls < stop_after) {
     sprintf(temp_str, "%llu new calls during %lu.%03lu s period ",
@@ -887,11 +888,11 @@ void print_stats_in_file(FILE * f, int last)
   } else {
     sprintf(temp_str, "Call limit reached (-m %lu), %lu.%03lu s period ",
             stop_after,
-            (clock_tick-last_report_time) / 1000, 
+            (clock_tick-last_report_time) / 1000,
             ((clock_tick-last_report_time) % 1000));
   }
   divisor = scheduling_loops; if(!divisor) { divisor = 1; }
-  fprintf(f,"  %-38s %lu ms scheduler resolution" 
+  fprintf(f,"  %-38s %lu ms scheduler resolution"
          SIPP_ENDL,
          temp_str,
          (clock_tick-last_report_time) / divisor);
@@ -903,7 +904,7 @@ void print_stats_in_file(FILE * f, int last)
     sprintf(temp_str, "%llu calls (limit %d)", display_scenario->stats->GetStat(CStat::CPT_C_CurrentCall), open_calls_allowed);
   }
   fprintf(f,"  %-38s Peak was %llu calls, after %llu s" SIPP_ENDL,
-         temp_str, 
+         temp_str,
          display_scenario->stats->GetStat(CStat::CPT_C_CurrentCallPeak),
          display_scenario->stats->GetStat(CStat::CPT_C_CurrentCallPeakTime));
   fprintf(f,"  %d Running, %d Paused, %d Woken up" SIPP_ENDL,
@@ -922,18 +923,18 @@ void print_stats_in_file(FILE * f, int last)
   fprintf(f,SIPP_ENDL);
 
   if(compression) {
-    fprintf(f,"  Comp resync: %d sent, %d recv" , 
+    fprintf(f,"  Comp resync: %d sent, %d recv" ,
            resynch_send, resynch_recv);
     fprintf(f,SIPP_ENDL);
   }
 
-  /* 4th line , sockets and optional errors */ 
-  sprintf(temp_str,"%d open sockets", 
+  /* 4th line , sockets and optional errors */
+  sprintf(temp_str,"%d open sockets",
           pollnfds);
   fprintf(f,"  %-38s", temp_str);
   if(nb_net_recv_errors || nb_net_send_errors || nb_net_cong) {
     fprintf(f,"  %lu/%lu/%lu %s errors (send/recv/cong)" SIPP_ENDL,
-           nb_net_send_errors, 
+           nb_net_send_errors,
            nb_net_recv_errors,
            nb_net_cong,
            TRANSPORT_TO_STRING(transport));
@@ -988,11 +989,11 @@ void print_stats_in_file(FILE * f, int last)
   fprintf(f,SIPP_ENDL);
   if(!lose_packets) {
     fprintf(f,"                                 "
-           "Messages  Retrans   Timeout   Unexpected-Msg" 
+           "Messages  Retrans   Timeout   Unexpected-Msg"
            SIPP_ENDL);
   } else {
     fprintf(f,"                                 "
-           "Messages  Retrans   Timeout   Unexp.    Lost" 
+           "Messages  Retrans   Timeout   Unexp.    Lost"
            SIPP_ENDL);
   }
   for(unsigned long index = 0;
@@ -1006,7 +1007,7 @@ void print_stats_in_file(FILE * f, int last)
     if (show_index) {
 	fprintf(f, "%-2lu:", index);
     }
-    
+
     if(SendingMessage *src = curmsg -> send_scheme) {
       if (src->isResponse()) {
 	sprintf(temp_str, "%d", src->getCode());
@@ -1043,7 +1044,7 @@ void print_stats_in_file(FILE * f, int last)
     } else if(curmsg -> recv_response) {
       if(creationMode == MODE_SERVER) {
 	fprintf(f,"  ----------> %-10d ", curmsg -> recv_response);
-      } else { 
+      } else {
 	fprintf(f,"  %10d <---------- ", curmsg -> recv_response);
       }
 
@@ -1144,14 +1145,14 @@ void print_stats_in_file(FILE * f, int last)
     else {
       ERROR("Scenario command not implemented in display\n");
     }
-    
+
     if(lose_packets && (curmsg -> nb_lost)) {
       fprintf(f," %-9lu" SIPP_ENDL,
              curmsg -> nb_lost);
     } else {
       fprintf(f,SIPP_ENDL);
     }
-    
+
     if(curmsg -> crlf) {
       fprintf(f,SIPP_ENDL);
     }
@@ -1286,7 +1287,7 @@ void print_count_file(FILE *f, int header) {
 }
 
 void print_header_line(FILE *f, int last)
-{  
+{
   switch(currentScreenToDisplay)
     {
     case DISPLAY_STAT_SCREEN :
@@ -1319,8 +1320,6 @@ void print_bottom_line(FILE *f, int last)
     fprintf(f,"------- Waiting for active calls to end. Press [q] again to force exit. -------" SIPP_ENDL );
   } else if(paused) {
     fprintf(f,"----------------- Traffic Paused - Press [p] again to resume ------------------" SIPP_ENDL );
-  } else if(cpu_max) {
-    fprintf(f,"-------------------------------- CPU CONGESTED ---------------------------------" SIPP_ENDL);
   } else if(outbound_congestion) {
     fprintf(f,"------------------------------ OUTBOUND CONGESTION -----------------------------" SIPP_ENDL);
   } else {
@@ -1352,7 +1351,7 @@ void print_bottom_line(FILE *f, int last)
         break;
       case MODE_SLAVE :
         fprintf(f,"----------------------- 3PCC extended mode - Slave side -------------------------" SIPP_ENDL);
-        break; 
+        break;
       case MODE_3PCC_NONE:
         fprintf(f,"------------------------------ Sipp Server Mode -------------------------------" SIPP_ENDL);
 	break;
@@ -1449,7 +1448,7 @@ void print_variable_list()
 	printed++;
 	printf("=> No action found on any messages"SIPP_ENDL);
   }
-  
+
   printf(SIPP_ENDL);
   for(unsigned int i=0; i<(display_scenario->messages.size() + 5 - printed); i++) {
     printf(SIPP_ENDL);
@@ -1462,12 +1461,12 @@ void print_screens(void)
   int oldScreen = currentScreenToDisplay;
   int oldRepartition = currentRepartitionToDisplay;
 
-  currentScreenToDisplay = DISPLAY_SCENARIO_SCREEN;  
+  currentScreenToDisplay = DISPLAY_SCENARIO_SCREEN;
   print_header_line(   screenf, 0);
   print_stats_in_file( screenf, 0);
   print_bottom_line(   screenf, 0);
 
-  currentScreenToDisplay = DISPLAY_STAT_SCREEN;  
+  currentScreenToDisplay = DISPLAY_STAT_SCREEN;
   print_header_line(   screenf, 0);
   display_scenario->stats->displayStat(screenf);
   print_bottom_line(   screenf, 0);
@@ -1644,7 +1643,7 @@ bool process_key(int c) {
       break;
 
     case 'p':
-      if(paused) { 
+      if(paused) {
 	opentask::set_paused(false);
       } else {
 	opentask::set_paused(true);
@@ -2059,11 +2058,11 @@ void handle_stdin_socket() {
 char * get_peer_tag(char *msg)
 {
   char        * to_hdr;
-  char        * ptr; 
+  char        * ptr;
   char        * end_ptr;
   static char   tag[MAX_HEADER_LEN];
   int           tag_i = 0;
-  
+
   to_hdr = strstr(msg, "\r\nTo:");
   if(!to_hdr) to_hdr = strstr(msg, "\r\nto:");
   if(!to_hdr) to_hdr = strstr(msg, "\r\nTO:");
@@ -2081,13 +2080,13 @@ char * get_peer_tag(char *msg)
   if (!ptr) {
     return NULL;
   }
-  
-  ptr = strchr(to_hdr, ';'); 
-  
+
+  ptr = strchr(to_hdr, ';');
+
   if(!ptr) {
     return NULL;
   }
-  
+
   to_hdr = ptr;
 
   ptr = strstr(to_hdr, "tag");
@@ -2101,27 +2100,27 @@ char * get_peer_tag(char *msg)
   if (ptr>end_ptr) {
     return NULL ;
   }
-  
-  ptr = strchr(ptr, '='); 
-  
+
+  ptr = strchr(ptr, '=');
+
   if(!ptr) {
     ERROR("Invalid tag param in To: header");
   }
 
   ptr ++;
 
-  while((*ptr)         && 
-        (*ptr != ' ')  && 
-        (*ptr != ';')  && 
-        (*ptr != '\t') && 
-        (*ptr != '\t') && 
-        (*ptr != '\r') &&  
-        (*ptr != '\n') && 
+  while((*ptr)         &&
+        (*ptr != ' ')  &&
+        (*ptr != ';')  &&
+        (*ptr != '\t') &&
+        (*ptr != '\t') &&
+        (*ptr != '\r') &&
+        (*ptr != '\n') &&
         (*ptr)) {
     tag[tag_i++] = *(ptr++);
   }
   tag[tag_i] = 0;
-  
+
   return tag;
 }
 
@@ -2140,7 +2139,7 @@ char * get_incoming_header_content(char* message, char * name)
 
   src = message;
   dest = last_header;
-  
+
   /* for safety's sake */
   if (NULL == name || NULL == strrchr(name, ':')) {
       return last_header;
@@ -2152,13 +2151,13 @@ char * get_incoming_header_content(char* message, char * name)
       src += strlen(name);
 
     ptr = strchr(src, '\n');
-    
+
     /* Multiline headers always begin with a tab or a space
      * on the subsequent lines */
     while((ptr) &&
           ((*(ptr+1) == ' ' ) ||
            (*(ptr+1) == '\t')    )) {
-      ptr = strchr(ptr + 1, '\n'); 
+      ptr = strchr(ptr + 1, '\n');
     }
 
     if(ptr) { *ptr = 0; }
@@ -2168,10 +2167,10 @@ char * get_incoming_header_content(char* message, char * name)
     }
     dest += sprintf(dest, "%s", src);
     if(ptr) { *ptr = '\n'; }
-    
+
     src++;
   }
-  
+
   if(dest == last_header) {
     return last_header;
   }
@@ -2179,7 +2178,7 @@ char * get_incoming_header_content(char* message, char * name)
   *(dest--) = 0;
 
   /* Remove trailing whitespaces, tabs, and CRs */
-  while ((dest > last_header) && 
+  while ((dest > last_header) &&
          ((*dest == ' ') || (*dest == '\r')|| (*dest == '\t'))) {
     *(dest--) = 0;
   }
@@ -2208,7 +2207,7 @@ char * get_incoming_first_line(char * message)
 
   src = message;
   dest = last_header;
-  
+
   int i=0;
   while (*src){
     if((*src=='\n')||(*src=='\r')){
@@ -2221,7 +2220,7 @@ char * get_incoming_first_line(char * message)
     i++;
     src++;
   }
-  
+
   return last_header;
 }
 
@@ -2249,29 +2248,29 @@ char * get_call_id(char *msg)
     WARNING("(1) No valid Call-ID: header in reply '%s'", msg);
     return call_id;
   }
-  
+
   if (short_form) {
     ptr1 += 4;
   } else {
     ptr1 += 8;
   }
-  
+
   while((*ptr1 == ' ') || (*ptr1 == '\t')) { ptr1++; }
-  
+
   if(!(*ptr1)) {
     WARNING("(2) No valid Call-ID: header in reply");
     return call_id;
   }
-  
+
   ptr2 = ptr1;
 
-  while((*ptr2) && 
-        (*ptr2 != ' ') && 
-        (*ptr2 != '\t') && 
-        (*ptr2 != '\r') && 
-        (*ptr2 != '\n')) { 
+  while((*ptr2) &&
+        (*ptr2 != ' ') &&
+        (*ptr2 != '\t') &&
+        (*ptr2 != '\r') &&
+        (*ptr2 != '\n')) {
     ptr2 ++;
-  } 
+  }
 
   if(!*ptr2) {
     WARNING("(3) No valid Call-ID: header in reply");
@@ -2288,7 +2287,7 @@ char * get_call_id(char *msg)
 
 unsigned long int get_cseq_value(char *msg) {
   char *ptr1;
- 
+
 
   // no short form for CSeq:
   ptr1 = strstr(msg, "\r\nCSeq:");
@@ -2296,13 +2295,13 @@ unsigned long int get_cseq_value(char *msg) {
   if(!ptr1) { ptr1 = strstr(msg, "\r\ncseq:"); }
   if(!ptr1) { ptr1 = strstr(msg, "\r\nCseq:"); }
   if(!ptr1) { WARNING("No valid Cseq header in request %s", msg); return 0;}
- 
+
   ptr1 += 7;
- 
+
   while((*ptr1 == ' ') || (*ptr1 == '\t')) {++ptr1;}
- 
+
   if(!(*ptr1)) { WARNING("No valid Cseq data in header"); return 0;}
- 
+
   return strtoul(ptr1, NULL, 10);
 }
 
@@ -2357,7 +2356,7 @@ void free_socketbuf(struct socketbuf *socketbuf) {
 size_t decompress_if_needed(int sock, char *buff,  size_t len, void **st)
 {
   if(compression && len) {
-    if (useMessagef == 1) {	  
+    if (useMessagef == 1) {	
     struct timeval currentTime;
     GET_TIME (&currentTime);
     TRACE_MSG("----------------------------------------------- %s\n"
@@ -2370,11 +2369,11 @@ size_t decompress_if_needed(int sock, char *buff,  size_t len, void **st)
                buff[8] , buff[9] , buff[10], buff[11],
                buff[12], buff[13], buff[14], buff[15]);
     }
-    
+
     int rc = comp_uncompress(st,
-                             buff, 
+                             buff,
                              (unsigned int *) &len);
-    
+
     switch(rc) {
     case COMP_OK:
       TRACE_MSG("Compressed message decompressed properly.\n");
@@ -2383,8 +2382,8 @@ size_t decompress_if_needed(int sock, char *buff,  size_t len, void **st)
     case COMP_REPLY:
       TRACE_MSG("Compressed message KO, sending a reply (resynch).\n");
       sendto(sock,
-             buff, 
-             len, 
+             buff,
+             len,
              0,
              (sockaddr *)(void *)&remote_sockaddr,
              SOCK_ADDR_SIZE(&remote_sockaddr));
@@ -2607,19 +2606,25 @@ static ssize_t socket_write_primitive(struct sipp_socket *socket, char *buffer, 
 
 /* This socket is congested, mark it as such and add it to the poll files. */
 int enter_congestion(struct sipp_socket *socket, int again) {
+  if (!socket->ss_congested) {
+    nb_net_cong++;
+  }
   socket->ss_congested = true;
 
   TRACE_MSG("Problem %s on socket  %d and poll_idx  is %d \n",
 	again == EWOULDBLOCK ? "EWOULDBLOCK" : "EAGAIN",
 	socket->ss_fd, socket->ss_pollidx);
 
-  pollfiles[socket->ss_pollidx].events |= POLLOUT;
+  epollfiles[socket->ss_pollidx].events |= EPOLLOUT;
+  int rc = epoll_ctl(epollfd, EPOLL_CTL_MOD, socket->ss_fd, &epollfiles[socket->ss_pollidx]);
+  if (rc == -1) {
+    WARNING_NO("Failed to set EPOLLOUT");
+  }
 
 #ifdef USE_SCTP
   if (!(socket->ss_transport == T_SCTP &&
               socket->sctpstate == SCTP_CONNECTING))
 #endif
-    nb_net_cong++;
   return -1;
 }
 
@@ -2645,7 +2650,7 @@ static int write_error(struct sipp_socket *socket, int ret) {
   if ((socket->ss_transport == T_TCP || socket->ss_transport == T_SCTP)
           && errno == EPIPE) {
     nb_net_send_errors++;
-    close(socket->ss_fd);
+    sipp_abort_connection(socket->ss_fd);
     socket->ss_fd = -1;
     sockets_pending_reset.insert(socket);
     if (reconnect_allowed()) {
@@ -2723,7 +2728,7 @@ static int read_error(struct sipp_socket *socket, int ret) {
       return 0;
     }
 
-    close(socket->ss_fd);
+    sipp_abort_connection(socket->ss_fd);
     socket->ss_fd = -1;
     sockets_pending_reset.insert(socket);
 
@@ -3174,7 +3179,6 @@ static int empty_socket(struct sipp_socket *socket) {
   if (!socket->ss_msglen) {
     if (int msg_len = check_for_message(socket)) {
       socket->ss_msglen = msg_len;
-      pending_messages++;
     }
   }
 
@@ -3195,20 +3199,28 @@ void sipp_socket_invalidate(struct sipp_socket *socket) {
   }
 #endif
 
-  shutdown(socket->ss_fd, SHUT_RDWR);
+  /* In some error conditions, the socket FD has already been closed - if it hasn't, do so now. */
+  if (socket->ss_fd != -1) {
+    int rc = epoll_ctl(epollfd, EPOLL_CTL_DEL, socket->ss_fd, NULL);
+    if (rc == -1) {
+      WARNING_NO("Failed to delete FD from epoll");
+    }
+
+    shutdown(socket->ss_fd, SHUT_RDWR);
 
 #ifdef USE_SCTP
-  if (socket->ss_transport==T_SCTP && !gracefulclose)
-  {
-   struct linger ling={1,0};
-   if (setsockopt (socket->ss_fd, SOL_SOCKET, SO_LINGER, &ling, sizeof (ling)) < 0) {
-        WARNING("Unable to set SO_LINGER option for SCTP close");
-      }
-  }
+    if (socket->ss_transport==T_SCTP && !gracefulclose)
+    {
+     struct linger ling={1,0};
+     if (setsockopt (socket->ss_fd, SOL_SOCKET, SO_LINGER, &ling, sizeof (ling)) < 0) {
+          WARNING("Unable to set SO_LINGER option for SCTP close");
+        }
+    }
 #endif
-
-  close(socket->ss_fd);
-  socket->ss_fd = -1;
+  
+    sipp_abort_connection(socket->ss_fd);
+    socket->ss_fd = -1;
+  }
 
   if((pollidx = socket->ss_pollidx) >= pollnfds) {
     ERROR("Pollset error: index %d is greater than number of fds %d!", pollidx, pollnfds);
@@ -3221,21 +3233,40 @@ void sipp_socket_invalidate(struct sipp_socket *socket) {
   assert(pollnfds > 0);
 
   pollnfds--;
-  pollfiles[pollidx] = pollfiles[pollnfds];
+  if (pollidx < pollnfds) {
+    epollfiles[pollidx] = epollfiles[pollnfds];
+    epollfiles[pollidx].data.u32 = pollidx;
+    if (sockets[pollnfds]->ss_fd != -1) {
+      int rc = epoll_ctl(epollfd, EPOLL_CTL_MOD, sockets[pollnfds]->ss_fd, &epollfiles[pollidx]);
+      if (rc == -1) {
+        WARNING_NO("Failed to update FD within epoll");
+      }
+    }
+  }
   sockets[pollidx] = sockets[pollnfds];
   sockets[pollidx]->ss_pollidx = pollidx;
   sockets[pollnfds] = NULL;
-
-  if (socket->ss_msglen)
-  {
-     pending_messages--;
-  }
 
 #ifdef USE_SCTP
   if (socket->ss_transport == T_SCTP) {
       socket->sctpstate=SCTP_DOWN;
   }
 #endif
+}
+
+void sipp_abort_connection(int fd) {
+  /* Disable linger - we'll send a RST when we close. */
+  struct linger flush; 
+  flush.l_onoff = 1; 
+  flush.l_linger = 0; 
+  setsockopt(fd, SOL_SOCKET, SO_LINGER, &flush, sizeof(flush)); 
+
+  /* Mark the socket as non-blocking.  It's not clear whether this is required but can't hurt. */
+  int flags = fcntl(fd, F_GETFL, 0);
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+  /* Actually close the socket. */
+  close(fd);
 }
 
 void sipp_close_socket (struct sipp_socket *socket) {
@@ -3246,6 +3277,7 @@ void sipp_close_socket (struct sipp_socket *socket) {
   }
 
   sipp_socket_invalidate(socket);
+  sockets_pending_reset.erase(socket);
   free(socket);
 }
 
@@ -3270,7 +3302,7 @@ static ssize_t read_message(struct sipp_socket *socket, char *buf, size_t len, s
 
   /* Update our buffer and return value. */
   buf[avail] = '\0';
-  /* For CMD Message the escape char is the end of message */ 
+  /* For CMD Message the escape char is the end of message */
   if((socket->ss_control) && buf[avail-1] == 27 ) buf[avail-1] = '\0';
 
   socket->ss_in->offset += avail;
@@ -3286,7 +3318,6 @@ static ssize_t read_message(struct sipp_socket *socket, char *buf, size_t len, s
     socket->ss_msglen = msg_len;
   } else {
     socket->ss_msglen = 0;
-    pending_messages--;
   }
 
   if (useMessagef == 1) {
@@ -3309,7 +3340,10 @@ void process_message(struct sipp_socket *socket, char *msg, ssize_t msg_size, st
     return;
   }
   if (sipMsgCheck(msg, msg_size, socket) == false) {
-    WARNING("non SIP message discarded");
+    if ((msg_size != 4) ||
+        (memcmp(msg, "\r\n\r\n", 4) != 0)) {
+      WARNING("non SIP message discarded: \"%.*s\"", msg_size, msg);
+    }
     return;
   }
 
@@ -3319,13 +3353,13 @@ void process_message(struct sipp_socket *socket, char *msg, ssize_t msg_size, st
     return;
   }
   listener *listener_ptr = get_listener(call_id);
- 
+
   if (useShortMessagef == 1) {
               struct timeval currentTime;
               GET_TIME (&currentTime);
               TRACE_SHORTMSG("%s\tR\t%s\tCSeq:%s\t%s\n",
               CStat::formatTime(&currentTime),call_id, get_incoming_header_content(msg,"CSeq:"), get_incoming_first_line(msg));
-          } 
+          }
 
   if(!listener_ptr)
   {
@@ -3460,52 +3494,21 @@ void pollset_process(int wait)
 	         recv_count is a flag that stays up as
 	         long as there's data to read */
 
-  int loops = max_recv_loops;
-
-  /* What index should we try reading from? */
-  static int read_index;
-
-  if (read_index >= pollnfds) {
-    read_index = 0;
-  }
-
-  /* We need to process any messages that we have left over. */
-  while (pending_messages && (loops > 0)) {
-    getmilliseconds();
-    if (sockets[read_index]->ss_msglen) {
-	struct sockaddr_storage src;
-	char msg[SIPP_MAX_MSG_SIZE];
-	ssize_t len = read_message(sockets[read_index], msg, sizeof(msg), &src);
-	if (len > 0) {
-	  process_message(sockets[read_index], msg, len, &src);
-	} else {
-	  assert(0);
-	}
-	loops--;
-      }
-    read_index = (read_index + 1) % pollnfds;
-  }
-
-  /* Don't read more data if we still have some left over. */
-  if (pending_messages) {
-    return;
-  }
-
-  /* Get socket events. */
-  rs = poll(pollfiles, pollnfds, wait ? 1 : 0);
+  /* Get socket events.  Ignore the wait parameter and always wait - when establishing TCP connections, the alternative is that we tight-loop. */
+  rs = epoll_wait(epollfd, epollevents, max_recv_loops, 1);
   if((rs < 0) && (errno == EINTR)) {
     return;
   }
 
   /* We need to flush all sockets and pull data into all of our buffers. */
-  for(int poll_idx = 0; rs > 0 && poll_idx < pollnfds; poll_idx++) {
+  for (int event_idx = 0; event_idx < rs; event_idx++) {
+    int poll_idx = (int)epollevents[event_idx].data.u32;
     struct sipp_socket *sock = sockets[poll_idx];
-    int events = 0;
     int ret = 0;
 
     assert(sock);
 
-    if(pollfiles[poll_idx].revents & POLLOUT)
+    if (epollevents[event_idx].events & EPOLLOUT)
     {
 
 #ifdef USE_SCTP
@@ -3515,15 +3518,18 @@ void pollset_process(int wait)
       {
       /* We can flush this socket. */
       TRACE_MSG("Exit problem event on socket %d \n", sock->ss_fd);
-      pollfiles[poll_idx].events &= ~POLLOUT;
+      epollfiles[poll_idx].events &= ~EPOLLOUT;
+      int rc = epoll_ctl(epollfd, EPOLL_CTL_MOD, sock->ss_fd, &epollfiles[poll_idx]);
+      if (rc == -1) {
+        ERROR_NO("Failed to clear EPOLLOUT");
+      }
       sock->ss_congested = false;
 
       flush_socket(sock);
-      events++;
     }
     }
 
-    if(pollfiles[poll_idx].revents & POLLIN) {
+    if (epollevents[event_idx].events & EPOLLIN) {
       /* We can empty this socket. */
       if ((transport == T_TCP || transport == T_TLS || transport == T_SCTP) && sock == main_socket) {
 	struct sipp_socket *new_sock = sipp_accept_socket(sock);
@@ -3570,48 +3576,44 @@ void pollset_process(int wait)
 	    /* If read_error() then the poll_idx now belongs
 	     * to the newest/last socket added to the sockets[].
 	     * Need to re-do the same poll_idx for the "new" socket. */
-	    poll_idx--;
-	    events++;
-	    rs--;
-	    continue;
+            for (int event_idx2 = event_idx + 1; event_idx2 < rs; event_idx2++) {
+              if (epollevents[event_idx2].data.u32 == pollnfds) {
+                epollevents[event_idx2].data.u32 = poll_idx;
+              }
+            }
+            continue;
 	  }
 	}
       }
          }
-      events++;
     }
 
-    pollfiles[poll_idx].revents = 0;
-    if (events) {
-      rs--;
-    }
-  }
-
-  if (read_index >= pollnfds) {
-    read_index = 0;
-  }
-
-  /* We need to process any new messages that we read. */
-  while (pending_messages && (loops > 0)) {
+    int old_pollnfds = pollnfds;
     getmilliseconds();
-
-    if (sockets[read_index]->ss_msglen) {
+    /* Keep processing messages until this socket is freed (changing the number of file descriptors) or we run out of messages. */
+    while ((pollnfds == old_pollnfds) &&
+           (sock->ss_msglen)) {
       char msg[SIPP_MAX_MSG_SIZE];
       struct sockaddr_storage src;
       ssize_t len;
 
-      len = read_message(sockets[read_index], msg, sizeof(msg), &src);
+      len = read_message(sock, msg, sizeof(msg), &src);
       if (len > 0) {
-	process_message(sockets[read_index], msg, len, &src);
+        process_message(sock, msg, len, &src);
       } else {
-	assert(0);
+        assert(0);
       }
-      loops--;
     }
-    read_index = (read_index + 1) % pollnfds;
-  }
 
-  cpu_max = loops <= 0;
+    if (pollnfds != old_pollnfds) {
+      /* Processing messages has changed the number of pollnfds, so update any remaining events */
+      for (int event_idx2 = event_idx + 1; event_idx2 < rs; event_idx2++) {
+        if (epollevents[event_idx2].data.u32 == pollnfds) {
+          epollevents[event_idx2].data.u32 = poll_idx;
+        }
+      }
+    }
+  }
 }
 
 void timeout_alarm(int param){
@@ -3633,7 +3635,7 @@ void traffic_thread()
   getmilliseconds();
 
   /* Arm the global timer if needed */
-  if (global_timeout > 0) { 
+  if (global_timeout > 0) {
     signal(SIGALRM, timeout_alarm);
     alarm(global_timeout / 1000);
   }
@@ -3780,30 +3782,30 @@ void rtp_echo_thread (void * param)
 
   for (;;) {
     len = sizeof(remote_rtp_addr);
-    nr = recvfrom(*(int *)param, 
-                  msg, 
-                  media_bufsize, 0, 
-                  (sockaddr *)(void *) &remote_rtp_addr, 
+    nr = recvfrom(*(int *)param,
+                  msg,
+                  media_bufsize, 0,
+                  (sockaddr *)(void *) &remote_rtp_addr,
                   &len);
 
     if (((long)nr) < 0) {
       WARNING("%s %i",
-                 "Error on RTP echo reception - stopping echo - errno=", 
+                 "Error on RTP echo reception - stopping echo - errno=",
                  errno);
       return;
     }
-    ns = sendto(*(int *)param, msg, nr, 
-                0, (sockaddr *)(void *) &remote_rtp_addr, 
+    ns = sendto(*(int *)param, msg, nr,
+                0, (sockaddr *)(void *) &remote_rtp_addr,
                 len);
 
     if (ns != nr) {
       WARNING("%s %i",
-                 "Error on RTP echo transmission - stopping echo - errno=", 
+                 "Error on RTP echo transmission - stopping echo - errno=",
                  errno);
       return;
     }
-    
-    if (*(int *)param==media_socket) {    
+
+    if (*(int *)param==media_socket) {
     rtp_pckts++;
     rtp_bytes += ns;
   }
@@ -3901,7 +3903,7 @@ char *wrap(const char *in, int offset, int size) {
 }
 
 /* Help screen */
-void help() 
+void help()
 {
   int i, max;
 
@@ -3966,12 +3968,12 @@ void help()
 }
 
 
-void help_stats() 
+void help_stats()
 {
   printf(
 "\n"
 "  The  -trace_stat option dumps all statistics in the\n"
-"  <scenario_name.csv> file. The dump starts with one header\n" 
+"  <scenario_name.csv> file. The dump starts with one header\n"
 "  line with all counters. All following lines are 'snapshots' of \n"
 "  statistics counter given the statistics report frequency\n"
 "  (-fd option). This file can be easily imported in any\n"
@@ -4178,9 +4180,12 @@ static struct sipp_socket *sipp_allocate_socket(bool use_ipv6, int transport, in
   /* Store this socket in the tables. */
   ret->ss_pollidx = pollnfds++;
   sockets[ret->ss_pollidx] = ret;
-  pollfiles[ret->ss_pollidx].fd      = ret->ss_fd;
-  pollfiles[ret->ss_pollidx].events  = POLLIN | POLLERR;
-  pollfiles[ret->ss_pollidx].revents = 0;
+  epollfiles[ret->ss_pollidx].data.u32 = ret->ss_pollidx;
+  epollfiles[ret->ss_pollidx].events   = EPOLLIN;
+  int rc = epoll_ctl(epollfd, EPOLL_CTL_ADD, ret->ss_fd, &epollfiles[ret->ss_pollidx]);
+  if (rc == -1) {
+    ERROR_NO("Failed to add FD to epoll");
+  }
 
   return ret;
 }
@@ -4425,11 +4430,23 @@ int sipp_do_connect_socket(struct sipp_socket *socket) {
   }
 #endif
 
+  int flags = fcntl(socket->ss_fd, F_GETFL, 0);
+  fcntl(socket->ss_fd, F_SETFL, flags | O_NONBLOCK);
+
   errno = 0;
   ret = connect(socket->ss_fd, (struct sockaddr *)&socket->ss_dest, SOCK_ADDR_SIZE(&socket->ss_dest));
   if (ret < 0) {
-    return ret;
+    if (errno == EINPROGRESS)
+    {
+      /* Block this socket until the connect completes - this is very similar to entering congestion, but we don't want to increment congestion statistics. */
+      enter_congestion(socket, 0);
+      nb_net_cong--;
+    } else {
+      return ret;
+    }
   }
+
+  fcntl(socket->ss_fd, F_SETFL, flags);
 
   if (socket->ss_transport == T_TLS) {
 #ifdef _USE_OPENSSL
@@ -4457,7 +4474,12 @@ int sipp_connect_socket(struct sipp_socket *socket, struct sockaddr_storage *des
 }
 
 int sipp_reconnect_socket(struct sipp_socket *socket) {
-  assert(socket->ss_fd == -1);
+  if ((!socket->ss_invalid) &&
+      (socket->ss_fd != -1)) {
+    WARNING("When reconnecting socket, already have file descriptor %d", socket->ss_fd);
+    sipp_abort_connection(socket->ss_fd);
+    socket->ss_fd = -1;
+  }
 
   socket->ss_fd = socket_fd(socket->ss_ipv6, socket->ss_transport);
   if (socket->ss_fd == -1) {
@@ -4484,11 +4506,15 @@ int sipp_reconnect_socket(struct sipp_socket *socket) {
     /* Store this socket in the tables. */
     socket->ss_pollidx = pollnfds++;
     sockets[socket->ss_pollidx] = socket;
-    pollfiles[socket->ss_pollidx].fd      = socket->ss_fd;
-    pollfiles[socket->ss_pollidx].events  = POLLIN | POLLERR;
-    pollfiles[socket->ss_pollidx].revents = 0;
+    epollfiles[socket->ss_pollidx].data.u32 = socket->ss_pollidx;
+    epollfiles[socket->ss_pollidx].events   = EPOLLIN;
 
     socket->ss_invalid = false;
+  }
+
+  int rc = epoll_ctl(epollfd, EPOLL_CTL_ADD, socket->ss_fd, &epollfiles[socket->ss_pollidx]);
+  if (rc == -1) {
+    ERROR_NO("Failed to add FD to epoll");
   }
 
   return sipp_do_connect_socket(socket);
@@ -4540,7 +4566,7 @@ int main(int argc, char *argv[])
   int                  L_maxSocketPresent = 0;
   unsigned int         generic_count = 0;
   bool                 slave_masterSet = false;
-  
+
   generic[0] = NULL;
 
   /* At least one argument is needed */
@@ -4574,7 +4600,7 @@ int main(int argc, char *argv[])
   }
 
   screen_set_exename((char *)"sipp");
-  
+
   pid = getpid();
   memset(local_ip, 0, 40);
 #ifdef USE_SCTP
@@ -4583,7 +4609,7 @@ int main(int argc, char *argv[])
   memset(media_ip,0, 40);
   memset(control_ip,0, 40);
   memset(media_ip_escaped,0, 42);
-  
+
   /* Load compression pluggin if available */
   comp_load();
 
@@ -4633,7 +4659,7 @@ int main(int argc, char *argv[])
 	      "-PCAP"
 #endif
 	      ", version %s, built %s, %s.\n\n",
-	      SIPP_VERSION, __DATE__, __TIME__); 
+	      SIPP_VERSION, __DATE__, __TIME__);
 
 	  printf
 	    (" This program is free software; you can redistribute it and/or\n"
@@ -4662,7 +4688,7 @@ int main(int argc, char *argv[])
           REQUIRE_ARG();
           CHECK_PASS();
           *((long *)option->data) = get_long(argv[argi], argv[argi-1]);
-          break; 
+          break;
         case SIPP_OPTION_LONG_LONG:
           REQUIRE_ARG();
           CHECK_PASS();
@@ -4892,7 +4918,7 @@ int main(int argc, char *argv[])
 	  }
 	  if(extendedTwinSippMode){
 	    ERROR("-3pcc and -slave_cfg options are not compatible\n");
-	  } 
+	  }
 	  REQUIRE_ARG();
 	  CHECK_PASS();
 	  twinSippMode = true;
@@ -4938,7 +4964,7 @@ int main(int argc, char *argv[])
 	    ERROR("Internal error, I don't recognize %s as a scenario option\n", argv[argi] - 1);
 	  }
 	  break;
-	case SIPP_OPTION_SLAVE_CFG: 
+	case SIPP_OPTION_SLAVE_CFG:
 	  REQUIRE_ARG();
 	  CHECK_PASS();
 	  if(twinSippMode){
@@ -5172,7 +5198,7 @@ int main(int argc, char *argv[])
   if (useMessagef == 1) {
     rotate_messagef();
   }
-  
+
   if (useShortMessagef == 1) {
     rotate_shortmessagef();
   }
@@ -5180,7 +5206,7 @@ int main(int argc, char *argv[])
   if (useCallDebugf) {
     rotate_calldebugf();
   }
-  
+
   if (useScreenf == 1) {
     char L_file_name [MAX_PATH];
     sprintf (L_file_name, "%s_%d_screen.log", scenario_file, getpid());
@@ -5188,9 +5214,9 @@ int main(int argc, char *argv[])
     if(!screenf) {
       ERROR("Unable to create '%s'", L_file_name);
     }
-  }  
+  }
 
-   // TODO: finish the -trace_timeout option implementation    
+   // TODO: finish the -trace_timeout option implementation
 
  /* if (useTimeoutf == 1) {
     char L_file_name [MAX_PATH];
@@ -5254,7 +5280,7 @@ int main(int argc, char *argv[])
                FD_SETSIZE);
     }
   }
-  
+
   /* Load default scenario in case nothing was loaded */
   if(!main_scenario) {
     main_scenario = new scenario(0, 0);
@@ -5280,7 +5306,7 @@ int main(int argc, char *argv[])
   if(argiFileName) {
     main_scenario->stats->setFileName(argv[argiFileName]);
   }
- 
+
   // setup option form cmd line
   call::maxDynamicId   = maxDynamicId;
   call::startDynamicId = startDynamicId;
@@ -5300,7 +5326,7 @@ int main(int argc, char *argv[])
       ERROR("SIPp cannot use out-of-call scenarios when running in server mode");
   }
 
-  /* checking if we need to launch the tool in background mode */ 
+  /* checking if we need to launch the tool in background mode */
   if(backgroundMode == true)
     {
       pid_t l_pid;
@@ -5348,6 +5374,12 @@ int main(int argc, char *argv[])
     opentask::set_rate(rate);
   }
 
+  epollevents = (struct epoll_event*)malloc(sizeof(struct epoll_event) * max_recv_loops);
+  epollfd = epoll_create(SIPP_MAXFDS);
+  if (epollfd == -1) {
+    ERROR_NO("Failed to open epoll FD");
+  }
+
   open_connections();
 
   /* Defaults for media sockets */
@@ -5382,10 +5414,10 @@ int main(int argc, char *argv[])
       ERROR("Unknown RTP address '%s'.\n"
                "Use 'sipp -h' for details", media_ip);
     }
-    
+
     memset(&media_sockaddr,0,sizeof(struct sockaddr_storage));
     media_sockaddr.ss_family = local_addr->ai_addr->sa_family;
-    
+
     memcpy(&media_sockaddr,
            local_addr->ai_addr,
            SOCK_ADDR_SIZE(
@@ -5437,8 +5469,8 @@ int main(int argc, char *argv[])
     }
 
     /*---------------------------------------------------------
-       Bind the second socket to media_port+2 
-       (+1 is reserved for RTCP) 
+       Bind the second socket to media_port+2
+       (+1 is reserved for RTCP)
     ----------------------------------------------------------*/
 
     if (media_sockaddr.ss_family == AF_INET) {
@@ -5452,7 +5484,7 @@ int main(int argc, char *argv[])
       strcpy(media_ip_escaped, media_ip);
     }
 
-    if(bind(media_socket_video, 
+    if(bind(media_socket_video,
             (sockaddr *)(void *)&media_sockaddr,
             SOCK_ADDR_SIZE(&media_sockaddr))) {
       char msg[512];
@@ -5473,7 +5505,7 @@ int main(int argc, char *argv[])
         (&pthread2_id,
          NULL,
          (void *(*)(void *)) rtp_echo_thread,
-         (void*)&media_socket) 
+         (void*)&media_socket)
         == -1) {
       ERROR_NO("Unable to create RTP echo thread");
     }
@@ -5486,13 +5518,16 @@ int main(int argc, char *argv[])
         (&pthread3_id,
          NULL,
          (void *(*)(void *)) rtp_echo_thread,
-         (void*)&media_socket_video) 
+         (void*)&media_socket_video)
         == -1) {
       ERROR_NO("Unable to create second RTP echo thread");
       }
     }
 
   traffic_thread();
+
+  close(epollfd);
+  free(epollevents);
 
   if (scenario_file != NULL) {
     delete [] scenario_file ;
@@ -5563,7 +5598,7 @@ void close_calls(struct sipp_socket *socket) {
 int open_connections() {
   int status=0;
   local_port = 0;
-  
+
   if(!strlen(remote_host)) {
     if((sendMode != MODE_SERVER)) {
       ERROR("Missing remote host parameter. This scenario requires it");
@@ -5574,7 +5609,7 @@ int open_connections() {
     if (temp_remote_port != 0) {
       remote_port = temp_remote_port;
     }
- 
+
     /* Resolving the remote IP */
     {
       struct addrinfo   hints;
@@ -5607,11 +5642,11 @@ int open_connections() {
       if (remote_sockaddr.ss_family == AF_INET) {
         (_RCAST(struct sockaddr_in *, &remote_sockaddr))->sin_port =
           htons((short)remote_port);
-        strcpy(remote_ip_escaped, remote_ip); 
+        strcpy(remote_ip_escaped, remote_ip);
       } else {
         (_RCAST(struct sockaddr_in6 *, &remote_sockaddr))->sin6_port =
           htons((short)remote_port);
-        sprintf(remote_ip_escaped, "[%s]", remote_ip); 
+        sprintf(remote_ip_escaped, "[%s]", remote_ip);
       }
       fprintf(stderr,"Done.\n");
     }
@@ -5620,7 +5655,7 @@ int open_connections() {
   if(gethostname(hostname,64) != 0) {
     ERROR_NO("Can't get local hostname in 'gethostname(hostname,64)'");
   }
-  
+
   {
     char            * local_host = NULL;
     struct addrinfo * local_addr;
@@ -5742,7 +5777,7 @@ int open_connections() {
       memset((char*)&hints, 0, sizeof(hints));
       hints.ai_flags  = AI_PASSIVE;
       hints.ai_family = PF_UNSPEC;
-       
+
       if (peripsocket) {
         // On some machines it fails to bind to the self computed local
         // IP address.
@@ -5774,10 +5809,10 @@ int open_connections() {
 
     if (local_ip_is_ipv6) {
       (_RCAST(struct sockaddr_in6 *, &local_sockaddr))->sin6_port
-          = htons((short)user_port);        
+          = htons((short)user_port);
     } else {
       (_RCAST(struct sockaddr_in *, &local_sockaddr))->sin_port
-          = htons((short)user_port); 
+          = htons((short)user_port);
     }
     if(sipp_bind_socket(main_socket, &local_sockaddr, &local_port)) {
       ERROR_NO("Unable to bind main socket");
@@ -5893,7 +5928,7 @@ int open_connections() {
        ERROR("TwinSipp Mode enabled but thirdPartyMode is different "
               "from 3PCC_CONTROLLER_B and 3PCC_CONTROLLER_A\n");
       }
-   }else if (extendedTwinSippMode){       
+   }else if (extendedTwinSippMode){
      if (thirdPartyMode == MODE_MASTER || thirdPartyMode == MODE_MASTER_PASSIVE) {
        strcpy(twinSippHost,get_peer_addr(master_name));
        get_host_and_port(twinSippHost, twinSippHost, &twinSippPort);
@@ -5993,7 +6028,7 @@ char * get_peer_addr(char * peer)
 {
     char * addr;
     peer_addr_map::iterator peer_addr_it;
-    peer_addr_it = peer_addrs.find(peer_addr_map::key_type(peer)); 
+    peer_addr_it = peer_addrs.find(peer_addr_map::key_type(peer));
     if(peer_addr_it != peer_addrs.end()){
        addr =  peer_addr_it->second;
        return addr;

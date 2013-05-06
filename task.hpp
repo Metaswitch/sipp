@@ -36,9 +36,9 @@ typedef std::list<task *> task_list;
  * If we were to put a minimum bound on timer_resol (or do some kind of dynamic
  * allocation), then we could reduce the level one order by a factor of
  * timer_resol. */
-#define LEVEL_ONE_ORDER 12
+#define LEVEL_ONE_ORDER 16
 #define LEVEL_TWO_ORDER 10
-#define LEVEL_THREE_ORDER 10
+#define LEVEL_THREE_ORDER 6
 #define LEVEL_ONE_SLOTS (1 << LEVEL_ONE_ORDER)
 #define LEVEL_TWO_SLOTS (1 << LEVEL_TWO_ORDER)
 #define LEVEL_THREE_SLOTS (1 << LEVEL_THREE_ORDER)
