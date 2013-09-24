@@ -790,6 +790,10 @@ bool call::connect_socket_if_needed()
   } else { /* TCP, SCTP or TLS. */
     struct sockaddr_storage L_dest;
 
+    /* Resolve the remote host again.  This replicates the function (and code)
+     * of the open_connections function in sipp.cpp.  Repeating this here
+     * (just before opening a new connection) means that we'll round-robin our
+     * connections across all IP addresses to which the host resolves. */
     struct addrinfo   hints;
     struct addrinfo * local_addr;
 
