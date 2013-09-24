@@ -788,7 +788,43 @@ bool call::connect_socket_if_needed()
       ERROR_NO("Unable to bind UDP socket");
     }
   } else { /* TCP, SCTP or TLS. */
-    struct sockaddr_storage *L_dest = &remote_sockaddr;
+    struct sockaddr_storage L_dest;
+
+    /* Resolve the remote host again.  This replicates the function (and code)
+     * of the open_connections function in sipp.cpp.  Repeating this here
+     * (just before opening a new connection) means that we'll round-robin our
+     * connections across all IP addresses to which the host resolves. */
+    struct addrinfo   hints;
+    struct addrinfo * local_addr;
+
+    memset((char*)&hints, 0, sizeof(hints));
+    hints.ai_flags  = AI_PASSIVE;
+    hints.ai_family = PF_UNSPEC;
+
+    /* FIXME: add DNS SRV support using liburli? */
+    if (getaddrinfo(remote_host,
+                    NULL,
+                    &hints,
+                    &local_addr) == 0) {
+      memset(&L_dest, 0, sizeof(L_dest));
+      memcpy(&L_dest,
+             local_addr->ai_addr,
+             SOCK_ADDR_SIZE(
+               _RCAST(struct sockaddr_storage *,local_addr->ai_addr)));
+      freeaddrinfo(local_addr);
+
+      if (L_dest.ss_family == AF_INET) {
+        (_RCAST(struct sockaddr_in *, &L_dest))->sin_port = htons((short)remote_port);
+      } else {
+        (_RCAST(struct sockaddr_in6 *, &L_dest))->sin6_port = htons((short)remote_port);
+      }
+    } else {
+      ERROR("Unknown remote host '%s'.\n"
+               "Use 'sipp -h' for details", remote_host);
+      memcpy(&L_dest,
+             &remote_sockaddr,
+             sizeof(remote_sockaddr));
+    }
 
     if ((associate_socket(new_sipp_call_socket(use_ipv6, transport, &existing))) == NULL) {
       ERROR_NO("Unable to get a TCP/SCTP/TLS socket");
@@ -801,10 +837,12 @@ bool call::connect_socket_if_needed()
     sipp_customize_socket(call_socket);
 
     if (use_remote_sending_addr) {
-      L_dest = &remote_sending_sockaddr;
+      memcpy(&L_dest,
+             &remote_sockaddr,
+             sizeof(remote_sockaddr));
     }
 
-    if (sipp_connect_socket(call_socket, L_dest)) {
+    if (sipp_connect_socket(call_socket, &L_dest)) {
       if (reconnect_allowed()) {
         if(errno == EINVAL){
           /* This occurs sometime on HPUX but is not a true INVAL */
@@ -1513,7 +1551,7 @@ bool call::executeMessage(message *curmsg) {
     }
     
     msg_snd = send_scene(msg_index, &send_status, &msgLen);
-    if(send_status == -1 && ((call_socket != NULL && call_socket->ss_congested) || errno == EWOULDBLOCK)) {
+    if(send_status == -1 && errno == EWOULDBLOCK) {
       if (incr_cseq) --cseq;
       /* Have we set the timeout yet? */
       if (send_timeout) {
