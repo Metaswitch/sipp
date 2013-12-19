@@ -88,15 +88,15 @@ unsigned int get_tdm_map_number() {
     if (tdm_map[(random + i - 1) % interval] == false) {
       nb = (random + i - 1) % interval;
       found = true;
-    } 
+    }
     i++;
-  } 
+  }
 
   if (!found) {
     return 0;
   } else {
     return nb+1;
-  } 
+  }
 }
 
 /* When should this call wake up? */
@@ -433,7 +433,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
   nb_last_delay = 0;
   use_ipv6 = ipv6;
   queued_msg = NULL;
-  
+
   dialog_authentication = NULL;
   dialog_challenge_type = 0;
 
@@ -458,7 +458,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
   } else {
     memset(&call_peer, 0, sizeof(call_peer));
   }
-  
+
   // initialising the CallVariable with the Scenario variable
   int i;
   VariableTable *userVars = NULL;
@@ -498,7 +498,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
     transactions = NULL;
   }
 
-  // If not updated by a message we use the start time 
+  // If not updated by a message we use the start time
   // information to compute rtd information
   start_time_rtd = (unsigned long long *)malloc(sizeof(unsigned long long) * call_scenario->stats->nRtds());
   if (!start_time_rtd) {
@@ -652,7 +652,7 @@ call::~call()
   if (use_tdmmap) {
     tdm_map[tdm_map_number] = false;
   }
-  
+
 # ifdef PCAPPLAY
   if (media_thread != 0) {
     pthread_cancel(media_thread);
@@ -761,7 +761,7 @@ bool call::connect_socket_if_needed()
     } else {
       saddr.ss_family       = AF_INET;
     }
-    
+
     if (peripsocket) {
       struct addrinfo * h ;
       struct addrinfo   hints;
@@ -771,7 +771,7 @@ bool call::connect_socket_if_needed()
       getaddrinfo(peripaddr,
                   NULL,
                   &hints,
-                  &h); 
+                  &h);
       memcpy(&saddr,
              h->ai_addr,
              SOCK_ADDR_SIZE(
@@ -833,7 +833,7 @@ bool call::connect_socket_if_needed()
     if (existing) {
       return true;
     }
-    
+
     sipp_customize_socket(call_socket);
 
     if (use_remote_sending_addr) {
@@ -899,30 +899,30 @@ bool call::lost(int index)
   return (((double)rand() / (double)RAND_MAX) < (percent / 100.0));
 }
 
-int call::send_raw(char * msg, int index, int len) 
+int call::send_raw(char * msg, int index, int len)
 {
   struct sipp_socket *sock;
   int rc;
 
   callDebug("Sending %s message for call %s (index %d, hash %u):\n%s\n\n", TRANSPORT_TO_STRING(transport), id, index, hash(msg), msg);
- 
+
   if (useShortMessagef == 1) {
       struct timeval currentTime;
       GET_TIME (&currentTime);
       char* cs=get_header_content(msg,"CSeq:");
       TRACE_SHORTMSG("%s\tS\t%s\tCSeq:%s\t%s\n",
              CStat::formatTime(&currentTime),id, cs, get_first_line(msg));
-  }  
- 
+  }
+
   if((index!=-1) && (lost(index))) {
     TRACE_MSG("%s message voluntary lost (while sending).", TRANSPORT_TO_STRING(transport));
     callDebug("%s message voluntary lost (while sending) (index %d, hash %u).\n", TRANSPORT_TO_STRING(transport), index, hash(msg));
-    
+
     if(comp_state) { comp_free(&comp_state); }
     call_scenario->messages[index] -> nb_lost++;
     return 0;
   }
-  
+
   sock = call_socket;
 
   if ((use_remote_sending_addr) && (sendMode == MODE_SERVER)) {
@@ -963,7 +963,7 @@ int call::send_raw(char * msg, int index, int len)
   if (len==0) {
     len = strlen(msg);
   }
-  
+
   assert(sock);
 
   rc = write_socket(sock, msg, len, WS_BUFFER, &call_peer);
@@ -1110,7 +1110,7 @@ char * call::get_header(char* message, char * name, bool content)
       while((ptr) &&
 	  ((*(ptr+1) == ' ' ) ||
 	   (*(ptr+1) == '\t')    )) {
-	ptr = strchr(ptr + 1, '\n'); 
+	ptr = strchr(ptr + 1, '\n');
       }
 
       if(ptr) { *ptr = 0; }
@@ -1166,19 +1166,19 @@ char * call::get_header(char* message, char * name, bool content)
   *(dest--) = 0;
 
   /* Remove trailing whitespaces, tabs, and CRs */
-  while ((dest > last_header) && 
+  while ((dest > last_header) &&
          ((*dest == ' ') || (*dest == '\r')|| (*dest == '\t'))) {
     *(dest--) = 0;
   }
- 
+
   /* Remove leading whitespaces */
   for (start = last_header; *start == ' '; start++);
 
   /* remove enclosed CRs in multilines */
   /* don't remove enclosed CRs for multiple headers (e.g. Via) (Rhys) */
   while((ptr = strstr(last_header, "\r\n")) != NULL
-        && (   *(ptr + 2) == ' ' 
-            || *(ptr + 2) == '\r' 
+        && (   *(ptr + 2) == ' '
+            || *(ptr + 2) == '\r'
             || *(ptr + 2) == '\t') ) {
     /* Use strlen(ptr) to include trailing zero */
     memmove(ptr, ptr+1, strlen(ptr));
@@ -1188,7 +1188,7 @@ char * call::get_header(char* message, char * name, bool content)
   while((ptr = strstr(last_header, "\r\r")) != NULL) {
     memmove(ptr, ptr+1, strlen(ptr));
   }
-  /* Remove illegal double Newline characters */  
+  /* Remove illegal double Newline characters */
   while((ptr = strstr(last_header, "\n\n")) != NULL) {
     memmove(ptr, ptr+1, strlen(ptr));
   }
@@ -1211,7 +1211,7 @@ char * call::get_first_line(char * message)
 
   src = message;
   dest = last_header;
-  
+
   int i=0;
   while (*src){
     if((*src=='\n')||(*src=='\r')){
@@ -1224,7 +1224,7 @@ char * call::get_first_line(char * message)
     i++;
     src++;
   }
-  
+
   return last_header;
 }
 
@@ -1265,7 +1265,7 @@ char * call::get_last_request_uri ()
      }
      last_request_uri[tmp_len] = '\0';
      return last_request_uri;
-  
+
 }
 
 char * call::send_scene(int index, int *send_status, int *len)
@@ -1536,8 +1536,8 @@ bool call::executeMessage(message *curmsg) {
     /* Handle counters and RTDs for this message. */
     do_bookkeeping(curmsg);
 
-    /* decide whether to increment cseq or not 
-     * basically increment for anything except response, ACK or CANCEL 
+    /* decide whether to increment cseq or not
+     * basically increment for anything except response, ACK or CANCEL
      * Note that cseq is only used by the [cseq] keyword, and
      * not by default
      */
@@ -1549,7 +1549,7 @@ bool call::executeMessage(message *curmsg) {
           ++cseq;
           incr_cseq = 1;
     }
-    
+
     msg_snd = send_scene(msg_index, &send_status, &msgLen);
     if(send_status == -1 && errno == EWOULDBLOCK) {
       if (incr_cseq) --cseq;
@@ -1607,7 +1607,7 @@ bool call::executeMessage(message *curmsg) {
 
       callDebug("Set Retransmission Hash: %u (recv index %d, send index %d)\n", recv_retrans_hash, recv_retrans_recv_index, recv_retrans_send_index);
 
-      /* Prevent from detecting the cause relation between send and recv 
+      /* Prevent from detecting the cause relation between send and recv
        * in the next valid send */
       last_recv_hash = 0;
     }
@@ -1646,7 +1646,7 @@ bool call::executeMessage(message *curmsg) {
       recv_timeout = 0;
       curmsg->nb_timeout++;
       if (curmsg->on_timeout < 0) {
-        // if you set a timeout but not a label, the call is aborted 
+        // if you set a timeout but not a label, the call is aborted
         WARNING("Call-Id: %s, receive timeout on message %s:%d without label to jump to (ontimeout attribute): aborting call",
                    id, curmsg->desc, curmsg->index);
         computeStat(CStat::E_CALL_FAILED);
@@ -1965,7 +1965,7 @@ bool call::process_unexpected(char * msg)
              TRANSPORT_TO_STRING(transport), msg_index, hash(msg), msg);
 
   if (default_behaviors & DEFAULT_BEHAVIOR_ABORTUNEXP) {
-    // if twin socket call => reset the other part here 
+    // if twin socket call => reset the other part here
     if (twinSippSocket && (msg_index > 0)) {
       sendCmdBuffer(createSendingMessage(get_default_message("3pcc_abort"), -1));
     }
@@ -2005,14 +2005,14 @@ bool call::abortCall(bool writeLog)
     is_inv = !strncmp(last_send_msg, "INVITE", 6);
   } else {
     is_inv = false;
-  }  
+  }
   if ((creationMode != MODE_SERVER) && (msg_index > 0)) {
     if ((call_established == false) && (is_inv)) {
       src_recv = last_recv_msg ;
       char   L_msg_buffer[SIPP_MAX_MSG_SIZE];
       L_msg_buffer[0] = '\0';
 
-      // Answer unexpected errors (4XX, 5XX and beyond) with an ACK 
+      // Answer unexpected errors (4XX, 5XX and beyond) with an ACK
       // Contributed by F. Tarek Rogers
       if((src_recv) && (get_reply_code(src_recv) >= 400)) {
         sendBuffer(createSendingMessage(get_default_message("ack"), -2));
@@ -2484,7 +2484,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
   if (length_marker || auth_marker) {
     body = strstr(msg_buffer, "\r\n\r\n");
     if (body) {
-	auth_body = body;    
+	auth_body = body;
 	auth_body += strlen("\r\n\r\n");
     }
   }
@@ -2674,13 +2674,13 @@ bool call::checkInternalCmd(char * cmd)
   while((*L_ptr1 == ' ') || (*L_ptr1 == '\t')) { L_ptr1++; }
   if (!(*L_ptr1)) {return (false);}
   L_ptr2 = L_ptr1;
-  while((*L_ptr2) && 
-        (*L_ptr2 != ' ') && 
-        (*L_ptr2 != '\t') && 
-        (*L_ptr2 != '\r') && 
-        (*L_ptr2 != '\n')) { 
+  while((*L_ptr2) &&
+        (*L_ptr2 != ' ') &&
+        (*L_ptr2 != '\t') &&
+        (*L_ptr2 != '\r') &&
+        (*L_ptr2 != '\n')) {
     L_ptr2 ++;
-  } 
+  }
   if(!*L_ptr2) { return (false); }
   L_backup = *L_ptr2;
   *L_ptr2 = 0;
@@ -2720,7 +2720,7 @@ bool call::check_peer_src(char * msg, int search_index)
     *L_ptr2 = L_backup;
     return(true);
   }
- 
+
   *L_ptr2 = L_backup;
   return (false);
 }
@@ -2776,7 +2776,7 @@ void call::formatNextReqUrl (char* next_req_url)
      that needs to be removed
    */
   char* actual_req_url = strchr(next_req_url, '<');
-  if (actual_req_url) 
+  if (actual_req_url)
   {
     /* using a temporary buffer */
     char tempBuffer[MAX_HEADER_LEN];
@@ -2824,9 +2824,9 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
         pointer = strrchr(rr, ',');
       }
 
-      if (pointer) 
+      if (pointer)
       {
-        if (!isFirst) 
+        if (!isFirst)
         {
           if (strlen(actual_rr) )
           {
@@ -2837,8 +2837,8 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
             strcpy(actual_rr, pointer + 1);
           }
           strcat(actual_rr, ",");
-        } 
-        else 
+        }
+        else
         {
           isFirst = false;
           if (NULL == strstr (pointer, ";lr"))
@@ -2857,17 +2857,17 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
             strcat(actual_rr, ",");
           }
         }
-      } 
-      else 
+      }
+      else
       {
-        if (!isFirst) 
+        if (!isFirst)
         {
             strcat(actual_rr, rr);
-        } 
+        }
         //
         // this is the *only* RR header that was found
         //
-        else 
+        else
         {
           if (NULL == strstr (rr, ";lr"))
           {
@@ -2902,12 +2902,12 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
     }
   }
 
-  if (strlen(actual_rr)) 
+  if (strlen(actual_rr))
   {
     dialog_route_set = (char *)
         calloc(1, strlen(actual_rr) + 2);
     sprintf(dialog_route_set, "%s", actual_rr);
-  } 
+  }
 
   if (strlen (targetURI))
   {
@@ -3047,13 +3047,13 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
   }
 
   /* Is it a response ? */
-  if((msg[0] == 'S') && 
+  if((msg[0] == 'S') &&
      (msg[1] == 'I') &&
      (msg[2] == 'P') &&
      (msg[3] == '/') &&
      (msg[4] == '2') &&
      (msg[5] == '.') &&
-     (msg[6] == '0')    ) {    
+     (msg[6] == '0')    ) {
 
     reply_code = get_reply_code(msg);
     if(!reply_code) {
@@ -3094,10 +3094,10 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
       /* In case of INVITE or re-INVITE, ACK or PRACK
          get the media info if needed (= we got a pcap
          play action) */
-      if ((strncmp(request, "INVITE", 6) == 0) 
-       || (strncmp(request, "ACK", 3) == 0) 
+      if ((strncmp(request, "INVITE", 6) == 0)
+       || (strncmp(request, "ACK", 3) == 0)
        || (strncmp(request, "PRACK", 5) == 0)     		
-       && (hasMedia == 1)) 
+       && (hasMedia == 1))
         get_remote_media_addr(msg);
 #endif
 
@@ -3128,7 +3128,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     /* TODO : this is a little buggy: If a 100 trying from an INVITE
      * is delayed by the network until the BYE is sent, it may
      * stop BYE transmission erroneously, if the BYE also expects
-     * a 100 trying. */    
+     * a 100 trying. */
     break;
   }
 
@@ -3142,7 +3142,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
       if(matches_scenario(search_index, reply_code, request, responsecseqmethod, txn)) {
         if (contig || call_scenario->messages[search_index]->optional == OPTIONAL_GLOBAL) {
          found = true;
-         break;  
+         break;
         } else {
 	  if (int checkTxn = call_scenario->messages[search_index]->response_txn) {
 	    /* This is a reply to an old transaction. */
@@ -3287,8 +3287,8 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     if (rcseq > cseq) cseq = rcseq;
   }
 
-  /* This is an ACK/PRACK or a response, and its index is greater than the 
-   * current active retransmission message, so we stop the retrans timer. 
+  /* This is an ACK/PRACK or a response, and its index is greater than the
+   * current active retransmission message, so we stop the retrans timer.
    * True also for CANCEL and BYE that we also want to answer to */
   if(((reply_code) ||
       ((!strcmp(request, "ACK")) ||
@@ -3297,7 +3297,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
      (search_index > last_send_index)) {
    /*
     * We should stop any retransmission timers on receipt of a provisional response only for INVITE
-    * transactions. Non INVITE transactions continue to retransmit at T2 until a final response is 
+    * transactions. Non INVITE transactions continue to retransmit at T2 until a final response is
     * received
     */
     if ( (0 == reply_code) || // means this is a request.
@@ -3377,6 +3377,74 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
 
       /* Store the code of the challenge for building the proper header */
       dialog_challenge_type = reply_code;
+  }
+
+  if ((call_scenario->messages[search_index] -> bShouldExportAKAIPSecKeys) &&
+      (reply_code == 401 || reply_code == 407)) {
+
+      MessageComponent* auth_comp = call_scenario->messages[search_index] -> auth_comp;
+      bool auth_comp_allocated = false;
+      if (auth_comp->type == E_Message_Injection) {
+          /* Need to read OP/K/AMF keys from CSV file. */
+          char buf[200];
+          char *dest = buf;
+          getFieldFromInputFile(auth_comp->comp_param.field_param.filename,
+                                auth_comp->comp_param.field_param.field,
+                                auth_comp->comp_param.field_param.line, dest);
+          dest = buf;
+          if (char *tmp = strstr(dest, "[authentication")) {
+              char *auth_marker = tmp;
+              auth_comp = (struct MessageComponent *)calloc(1, sizeof(struct MessageComponent));
+              if (!auth_comp) { ERROR("Out of memory!"); }
+              auth_comp_allocated = true;
+
+              tmp = strchr(auth_marker, ']');
+              char c = *tmp;
+              *tmp = '\0';
+              SendingMessage::parseAuthenticationKeyword(call_scenario, auth_comp, auth_marker);
+              *tmp = c;
+          } else {
+              ERROR("Expected authentication field");
+          }
+      }
+
+      /* Decode CK and IK using the supplied keys and the challenge nonce */
+      char my_aka_OP[100];
+      char my_aka_AMF[100];
+      char my_aka_K[100];
+      createSendingMessage(auth_comp->comp_param.auth_param.aka_K, -2, my_aka_K, sizeof(my_aka_K));
+      createSendingMessage(auth_comp->comp_param.auth_param.aka_AMF, -2, my_aka_AMF, sizeof(my_aka_AMF));
+      createSendingMessage(auth_comp->comp_param.auth_param.aka_OP, -2, my_aka_OP, sizeof(my_aka_OP));
+      char ck[16];
+      char ik[16];
+      decodeAKAIPSecKeys(my_aka_OP,
+                         my_aka_AMF,
+                         my_aka_K,
+                         dialog_authentication,
+                         ck,
+                         ik);
+
+      /* Convert CK and IK to hex strings. */
+      char hexa[]="0123456789abcdef";
+      char* ck_s = (char*)calloc(33, sizeof(char));
+      char* ik_s = (char*)calloc(33, sizeof(char));
+      for (int i = 0; i < 16; i++) {
+        ck_s[2*i]   = hexa[(ck[i] & 0xF0) >> 4];
+        ck_s[2*i+1] = hexa[ck[i] & 0x0F];
+        ik_s[2*i]   = hexa[(ik[i] & 0xF0) >> 4];
+        ik_s[2*i+1] = hexa[ik[i] & 0x0F];
+      }
+      ck_s[33] = '\0';
+      ik_s[33] = '\0';
+
+      /* Export CK and IK as $ck and $ik variables. */
+      M_callVariableTable->getVar(call_scenario->messages[search_index]->ck_varId)->setString(ck_s);
+      M_callVariableTable->getVar(call_scenario->messages[search_index]->ik_varId)->setString(ik_s);
+
+      if (auth_comp_allocated)
+      {
+          SendingMessage::freeMessageComponent(auth_comp);
+      }
   }
 
   /* If we are not advancing state, we should quite before we change this stuff. */
@@ -3836,7 +3904,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
 		WARNING("system call error for %s",x);
 	      }
 	    }
-	    exit(EXIT_OTHER); 
+	    exit(EXIT_OTHER);
 	  }
 	  break;
 	default:
@@ -3921,13 +3989,13 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
  char mat2 = toupper(*matchingString);
 
  ptr = msg;
- while (*ptr) { 
+ while (*ptr) {
    if (!case_indep) {
      ptr = strstr(ptr, matchingString);
      if (ptr == NULL) break;
      if (headers == true && ptr != msg && *(ptr-1) != '\n') {
        ++ptr;
-       continue; 
+       continue;
      }
    } else {
      if (headers) {
@@ -3944,7 +4012,7 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
          if (ptr1 == NULL) break;
          ptr = ptr1;
        } else {
-         if (ptr1 != NULL && ptr1 < ptr) ptr = ptr1; 
+         if (ptr1 != NULL && ptr1 < ptr) ptr = ptr1;
        }
      }
      if (strncasecmp(ptr, matchingString, len) != 0) {
@@ -3953,7 +4021,7 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
      }
    }
    // here with ptr pointing to a matching string
-   if (occurrence <= 1) break; 
+   if (occurrence <= 1) break;
    --occurrence;
    ++ptr;
  }
@@ -3961,7 +4029,7 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
  if(ptr != NULL && *ptr != 0) {
    strncpy(result, ptr+len, MAX_SUB_MESSAGE_LENGTH);
     sizeOf = strlen(result);
-    if(sizeOf >= MAX_SUB_MESSAGE_LENGTH)  
+    if(sizeOf >= MAX_SUB_MESSAGE_LENGTH)
       sizeOf = MAX_SUB_MESSAGE_LENGTH-1;
     while((i<sizeOf) && (result[i] != '\n') && (result[i] != '\r'))
       i++;
@@ -4002,7 +4070,7 @@ call::T_AutoMode call::checkAutomaticResponseMode(char * P_recv) {
     return E_AM_UNEXP_CANCEL;
   } else if (strcmp(P_recv, "PING") == 0) {
     return E_AM_PING;
-  } else if (((strcmp(P_recv, "INFO") == 0) || (strcmp(P_recv, "NOTIFY") == 0) || (strcmp(P_recv, "UPDATE") == 0)) 
+  } else if (((strcmp(P_recv, "INFO") == 0) || (strcmp(P_recv, "NOTIFY") == 0) || (strcmp(P_recv, "UPDATE") == 0))
                && (auto_answer == true)){
     return E_AM_AA;
   } else {
@@ -4047,7 +4115,7 @@ bool call::automaticResponseMode(T_AutoMode P_case, char * P_recv)
       WARNING("Continuing call on an unexpected BYE for call: %s", (id==NULL)?"none":id);
     }
       break ;
-      
+
   case E_AM_UNEXP_CANCEL: // response for an unexpected cancel
     // usage of last_ keywords
     last_recv_msg = (char *) realloc(last_recv_msg, strlen(P_recv) + 1);
@@ -4060,13 +4128,13 @@ bool call::automaticResponseMode(T_AutoMode P_case, char * P_recv)
       if (default_behaviors & DEFAULT_BEHAVIOR_BYE) {
 	sendBuffer(createSendingMessage(get_default_message("200"), -1));
       }
-    
-    // if twin socket call => reset the other part here 
+
+    // if twin socket call => reset the other part here
     if (twinSippSocket && (msg_index > 0)) {
       res = sendCmdBuffer
       (createSendingMessage(get_default_message("3pcc_abort"), -1));
     }
-    
+
     computeStat(CStat::E_CALL_FAILED);
     computeStat(CStat::E_FAILED_UNEXPECTED_MSG);
     delete this;
@@ -4074,22 +4142,22 @@ bool call::automaticResponseMode(T_AutoMode P_case, char * P_recv)
       WARNING("Continuing call on unexpected CANCEL for call: %s", (id==NULL)?"none":id);
     }
     break ;
-      
+
   case E_AM_PING: // response for a random ping
     // usage of last_ keywords
     last_recv_msg = (char *) realloc(last_recv_msg, strlen(P_recv) + 1);
     strcpy(last_recv_msg, P_recv);
-    
+
    if (default_behaviors & DEFAULT_BEHAVIOR_PINGREPLY) {
     WARNING("Automatic response mode for an unexpected PING for call: %s", (id==NULL)?"none":id);
     sendBuffer(createSendingMessage(get_default_message("200"), -1));
-    // Note: the call ends here but it is not marked as bad. PING is a 
+    // Note: the call ends here but it is not marked as bad. PING is a
     //       normal message.
-    // if twin socket call => reset the other part here 
+    // if twin socket call => reset the other part here
     if (twinSippSocket && (msg_index > 0)) {
       res = sendCmdBuffer(createSendingMessage(get_default_message("3pcc_abort"), -1));
     }
-    
+
     CStat::globalStat(CStat::E_AUTO_ANSWERED);
     delete this;
     } else {

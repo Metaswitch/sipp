@@ -45,11 +45,11 @@
 
 #define MODE_3PCC_NONE		0
 #define MODE_3PCC_CONTROLLER_A  2
-#define MODE_3PCC_CONTROLLER_B  3   
+#define MODE_3PCC_CONTROLLER_B  3
 #define MODE_3PCC_A_PASSIVE     4
 
 /* 3pcc extended mode*/
-#define MODE_MASTER             5 
+#define MODE_MASTER             5
 #define MODE_MASTER_PASSIVE     6
 #define MODE_SLAVE              7
 
@@ -69,13 +69,21 @@ public:
   bool		timewait;
 
   /* Number of sessions in a pause */
-  int            sessions; 
+  int            sessions;
 
   /* should collect route set? */
   bool           bShouldRecordRoutes;
 
   /* should collect authentication info? */
   bool           bShouldAuthenticate;
+
+  /* should export AKA IPSec crypto and integrity keys (plus the parsed
+   * message component with the OP, K and AMF keys needed to decode them).
+   */
+  bool           bShouldExportAKAIPSecKeys;
+  struct MessageComponent * auth_comp;
+  int            ck_varId;
+  int            ik_varId;
 
   /* If this is a send */
   SendingMessage *send_scheme;
@@ -137,7 +145,7 @@ public:
       ContentLengthValueZero,
       ContentLengthValueNoZero
   }ContentLengthFlag;
-  
+
   ContentLengthFlag   content_length_flag ;
 
   char           *recv_response_for_cseq_method_list;
@@ -230,7 +238,7 @@ extern int           thirdPartyMode;
 
 extern message::ContentLengthFlag  content_length_flag;
 
-void load_scenario(char * filename, 
+void load_scenario(char * filename,
                    int    deflt);
 
 /* 3pcc extended mode */
@@ -238,11 +246,11 @@ void parse_slave_cfg();
 
 void getActionForThisMessage();
 CSample *parse_distribution(bool oldstyle);
-int  createIntegerTable(char          * P_listeStr, 
-                        unsigned int ** listeInteger, 
+int  createIntegerTable(char          * P_listeStr,
+                        unsigned int ** listeInteger,
                         int           * sizeOfList);
 
-int  isWellFormed(char * P_listeStr, 
+int  isWellFormed(char * P_listeStr,
                   int  * nombre);
 
 /* String table functions. */

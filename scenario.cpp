@@ -47,6 +47,7 @@ message::message(int index, const char *desc)
   sessions = 0;
   bShouldRecordRoutes = 0;
   bShouldAuthenticate = 0;
+  bShouldExportAKAIPSecKeys = 0;
 
   send_scheme = NULL;
   retrans_delay = 0;
@@ -647,7 +648,7 @@ scenario::scenario(char * filename, int deflt)
   char *method_list = NULL;
   unsigned int scenario_file_cursor = 0;
   int    L_content_length = 0 ;
-  char * peer; 
+  char * peer;
 
   last_recv_optional = false;
 
@@ -901,6 +902,49 @@ scenario::scenario(char * filename, int deflt)
 	  bool temp = get_bool(ptr, "message authentication");
 	  curmsg -> bShouldAuthenticate = temp;
         }
+
+        /* extract and decode the AKA crypto and integrity keys */
+        if((ptr = xp_get_value((char *)"akakeys"))) {
+          curmsg -> bShouldExportAKAIPSecKeys = true;
+          curmsg->auth_comp = (struct MessageComponent *)calloc(1, sizeof(struct MessageComponent));
+          if (!curmsg->auth_comp) { ERROR("Out of memory!"); }
+
+          if (char *tmp = strstr(ptr, "[authentication")) {
+            /* authentication keys specified in scenario file */
+            char *auth_marker = tmp;
+            tmp = strchr(auth_marker, ']');
+            char c = *tmp;
+            *tmp = '\0';
+            SendingMessage::parseAuthenticationKeyword(this, curmsg->auth_comp, auth_marker);
+            *tmp = c;
+          } else if (char* tmp = strstr(ptr, "[field")) {
+            /* authentication keys in CSV file */
+            curmsg->auth_comp->type = E_Message_Injection;
+
+            /* Parse out the interesting things like file and number. */
+            curmsg->auth_comp->comp_param.field_param.field = atoi(tmp + strlen("[field"));
+
+            char fileName[256];
+            SendingMessage::getKeywordParam(tmp, "file=", fileName);
+            if (fileName[0] == '\0') {
+              if (!default_file) {
+                ERROR("No injection file was specified!\n");
+              }
+              curmsg->auth_comp->comp_param.field_param.filename = strdup(default_file);
+            } else {
+              curmsg->auth_comp->comp_param.field_param.filename = strdup(fileName);
+            }
+            if (inFiles.find(curmsg->auth_comp->comp_param.field_param.filename) == inFiles.end()) {
+              ERROR("Invalid injection file: %s\n", fileName);
+            }
+          } else {
+            ERROR("akakeys must specify either authentication keys or a field");
+          }
+
+          /* Allocate the ck and ik variables and remember the identifiers. */
+          curmsg->ck_varId = get_var("ck", "ck");
+          curmsg->ik_varId = get_var("ik", "ck");
+        }
       } else if(!strcmp(elem, "pause") || !strcmp(elem, "timewait")) {
 	checkOptionalRecv(elem, scenario_file_cursor);
         curmsg->M_type = MSG_TYPE_PAUSE;
@@ -956,7 +1000,7 @@ scenario::scenario(char * filename, int deflt)
         /* Sent messages descriptions */
 
 	/* 3pcc extended mode  */
-	if((ptr = xp_get_value((char *)"dest"))) { 
+	if((ptr = xp_get_value((char *)"dest"))) {
 	   peer = strdup(ptr) ;
 	   curmsg ->peer_dest = peer ;
            peer_map::iterator peer_it;
@@ -968,7 +1012,7 @@ scenario::scenario(char * filename, int deflt)
 	     T_peer_infos infos;
 	     infos.peer_socket = 0;
 	     strcpy(infos.peer_host, get_peer_addr(peer));
-             peers[std::string(peer)] = infos; 
+             peers[std::string(peer)] = infos;
 	   }
 	} else if (extendedTwinSippMode) {
 	  ERROR("You must specify a 'dest' for sendCmd with extended 3pcc mode!");
@@ -1162,7 +1206,7 @@ CSample *parse_distribution(bool oldstyle = false) {
 
 /* 3pcc extended mode:
    get the correspondances between
-   slave and master names and their 
+   slave and master names and their
    addresses */
 
 void parse_slave_cfg()
@@ -1194,7 +1238,7 @@ void parse_slave_cfg()
 
 }
 
-// Determine in which mode the sipp tool has been 
+// Determine in which mode the sipp tool has been
 // launched (client, server, 3pcc client, 3pcc server, 3pcc extended master or slave)
 void scenario::computeSippMode()
 {
@@ -1718,7 +1762,7 @@ int isWellFormed(char * P_listeStr, int * nombre)
 
   (*nombre) = 0;
   sizeOf = strlen(P_listeStr);
-  // getting the number 
+  // getting the number
   if(sizeOf > 0)
     {
       // is the string well formed ? [0-9] [,]
@@ -1729,13 +1773,13 @@ int isWellFormed(char * P_listeStr, int * nombre)
             {
             case ',':
               if(isANumber == false)
-                {   
+                {
                   return(0);
                 }
               else
                 {
-                  (*nombre)++;             
-                } 
+                  (*nombre)++;
+                }
               isANumber = false;
               break;
             case '0':
@@ -1755,13 +1799,13 @@ int isWellFormed(char * P_listeStr, int * nombre)
               break;
             case '\0':
               if(isANumber == false)
-                {   
+                {
                   return(0);
                 }
               else
                 {
                   (*nombre)++;
-                } 
+                }
               break;
             default:
               return(0);
@@ -1771,8 +1815,8 @@ int isWellFormed(char * P_listeStr, int * nombre)
   return(1);
 }
 
-int createIntegerTable(char * P_listeStr, 
-                       unsigned int ** listeInteger, 
+int createIntegerTable(char * P_listeStr,
+                       unsigned int ** listeInteger,
                        int * sizeOfList)
 {
   int nb=0;
@@ -1780,7 +1824,7 @@ int createIntegerTable(char * P_listeStr,
   char * ptr_prev = P_listeStr;
   unsigned int current_int;
 
-  if(P_listeStr){ 
+  if(P_listeStr){
    if(isWellFormed(P_listeStr, sizeOfList) == 1)
      {
        (*listeInteger) = new unsigned int[(*sizeOfList)];
@@ -1793,12 +1837,12 @@ int createIntegerTable(char * P_listeStr,
                  (*listeInteger)[nb] = current_int;
                nb++;
                ptr_prev = ptr+1;
-             } 
+             }
            ptr++;
          }
 
        // Read the last
-       sscanf(ptr_prev, "%u", &current_int); 
+       sscanf(ptr_prev, "%u", &current_int);
        if (nb<(*sizeOfList))
          (*listeInteger)[nb] = current_int;
        nb++;
@@ -1995,7 +2039,7 @@ char * default_scenario [] = {
 "\n"
 "</scenario>\n"
 "\n"
-, 
+,
 
 /************* Default_scenario[1] ***************/
 (char *)
@@ -2400,7 +2444,7 @@ char * default_scenario [] = {
 "\n",
 
 /************* Default_scenario[4] ***************/
-(char*) 
+(char*)
 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"
 "<!DOCTYPE scenario SYSTEM \"sipp.dtd\">\n"
 "\n"
@@ -2532,7 +2576,7 @@ char * default_scenario [] = {
 "\n",
 
 /************* Default_scenario[5] ***************/
-(char*) 
+(char*)
 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"
 "<!DOCTYPE scenario SYSTEM \"sipp.dtd\">\n"
 "\n"
@@ -2628,7 +2672,7 @@ char * default_scenario [] = {
 "\n",
 
 /************* Default_scenario[6] ***************/
-(char*) 
+(char*)
 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"
 "<!DOCTYPE scenario SYSTEM \"sipp.dtd\">\n"
 "\n"
