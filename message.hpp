@@ -105,6 +105,12 @@ class SendingMessage {
 
     static void parseAuthenticationKeyword(scenario *msg_scenario, struct MessageComponent *dst, char *keyword);
     static void freeMessageComponent(struct MessageComponent *comp);
+
+    // Get parameters from a [keyword]
+    static void getQuotedParam(char * dest, char * src, int * len);
+    static void getHexStringParam(char * dest, char * src, int * len);
+    static void getKeywordParam(char * src, char * param, char * output);
+
   private:
     std::vector <struct MessageComponent *> messageComponents;
 
@@ -117,10 +123,6 @@ class SendingMessage {
 
     scenario *msg_scenario;
 
-    // Get parameters from a [keyword]
-    static void getQuotedParam(char * dest, char * src, int * len);
-    static void getHexStringParam(char * dest, char * src, int * len);
-    static void getKeywordParam(char * src, char * param, char * output);
 };
 
 /* Custom Keyword Function Type. */
