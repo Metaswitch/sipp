@@ -265,6 +265,7 @@ int createAuthResponseMD5(const char *user,
     char tmp[MAX_HEADER_LEN];
     md5_state_t Md5Ctx;
     const char authint[] = "auth-int";
+    const char justauth[] = "auth";
 
     // Load in A1
     md5_init(&Md5Ctx);
@@ -311,7 +312,11 @@ int createAuthResponseMD5(const char *user,
         md5_append(&Md5Ctx, (md5_byte_t *) ":", 1);
         md5_append(&Md5Ctx, (md5_byte_t *) cnonce, strlen(cnonce));
         md5_append(&Md5Ctx, (md5_byte_t *) ":", 1);
-        md5_append(&Md5Ctx, (md5_byte_t *) authint, strlen(authint));
+        if (stristr(authtype, "auth-int") != NULL) {
+            md5_append(&Md5Ctx, (md5_byte_t *) authint, strlen(authint));
+        } else {
+            md5_append(&Md5Ctx, (md5_byte_t *) justauth, strlen(justauth));
+        }
     }
     md5_append(&Md5Ctx, (md5_byte_t *) ":", 1);
     md5_append(&Md5Ctx, (md5_byte_t *) &ha2_hex, HASH_HEX_SIZE);
