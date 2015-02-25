@@ -2858,6 +2858,9 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
     }
 
     if (strlen(actual_rr)) {
+      if (dialog_route_set) {
+        free(dialog_route_set);
+      }
         dialog_route_set = (char *)
                            calloc(1, strlen(actual_rr) + 2);
         sprintf(dialog_route_set, "%s", actual_rr);
@@ -3289,10 +3292,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
         ack_is_pending = true;
     }
 
-    /* store the route set only once. TODO: does not support target refreshes!! */
-    if (call_scenario->messages[search_index] -> bShouldRecordRoutes &&
-            NULL == dialog_route_set ) {
-
+    if (call_scenario->messages[search_index] -> bShouldRecordRoutes) {
         realloc_ptr = (char*) realloc(next_req_url, MAX_HEADER_LEN);
         if (realloc_ptr) {
             next_req_url = realloc_ptr;
