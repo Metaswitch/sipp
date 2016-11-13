@@ -999,7 +999,7 @@ void SIPpSocket::invalidate()
     }
 
     if ((pollidx = ss_pollidx) >= pollnfds) {
-        ERROR("Pollset error: index %d is greater than number of fds %d!", pollidx, pollnfds);
+        WARNING("Pollset error: index %d is greater than number of fds %d!", pollidx, pollnfds);
     }
 
     ss_invalid = true;
@@ -1009,8 +1009,8 @@ void SIPpSocket::invalidate()
     assert(pollnfds > 0);
 
     pollnfds--;
-#ifdef HAVE_EPOLL
     if (pollidx < pollnfds) {
+#ifdef HAVE_EPOLL
         epollfiles[pollidx] = epollfiles[pollnfds];
         epollfiles[pollidx].data.u32 = pollidx;
         if (sockets[pollnfds]->ss_fd != -1) {
@@ -1022,13 +1022,13 @@ void SIPpSocket::invalidate()
                 WARNING_NO("Failed to update FD within epoll");
             }
         }
-    }
 #else
-    pollfiles[pollidx] = pollfiles[pollnfds];
+        pollfiles[pollidx] = pollfiles[pollnfds];
 #endif
-    sockets[pollidx] = sockets[pollnfds];
-    sockets[pollidx]->ss_pollidx = pollidx;
-    sockets[pollnfds] = NULL;
+        sockets[pollidx] = sockets[pollnfds];
+        sockets[pollidx]->ss_pollidx = pollidx;
+        sockets[pollnfds] = NULL;
+    }
 
     if (ss_msglen) {
         pending_messages--;
