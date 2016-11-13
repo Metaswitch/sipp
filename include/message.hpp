@@ -151,6 +151,7 @@ struct MessageComponent {
             SendingMessage *aka_OP;
             SendingMessage *aka_AMF;
             SendingMessage *aka_K;
+            SendingMessage *aka_XRES;
         } auth_param;
         /* Field Substitution. */
         struct {

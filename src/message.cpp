@@ -565,8 +565,12 @@ void SendingMessage::parseAuthenticationKeyword(scenario *msg_scenario, struct M
 
     getKeywordParam(keyword, "aka_OP=", my_aka);
     dst->comp_param.auth_param.aka_OP = new SendingMessage(msg_scenario, my_aka, true);
+
     getKeywordParam(keyword, "aka_AMF=", my_aka);
     dst->comp_param.auth_param.aka_AMF = new SendingMessage(msg_scenario, my_aka, true);
+    
+    getKeywordParam(keyword, "aka_XRES=", my_aka);
+    dst->comp_param.auth_param.aka_XRES = new SendingMessage(msg_scenario, my_aka, true);
 }
 
 void SendingMessage::freeMessageComponent(struct MessageComponent *comp)

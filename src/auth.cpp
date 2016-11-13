@@ -94,6 +94,7 @@ int createAuthHeaderAKAv1MD5(const char *user,
                              const char *OP,
                              const char *AMF,
                              const char *K,
+                             const char *XRES,
                              const char *method,
                              const char *uri,
                              const char *msgbody,
@@ -159,6 +160,7 @@ int createAuthHeader(const char *user, const char *password, const char *method,
                      const char *aka_OP,
                      const char *aka_AMF,
                      const char *aka_K,
+                     const char *aka_XRES,
                      char *result)
 {
 
@@ -185,11 +187,11 @@ int createAuthHeader(const char *user, const char *password, const char *method,
         return createAuthHeaderMD5(user, password, strlen(password), method,
                                    uri, msgbody, auth, algo, result);
     } else if (strncasecmp(algo, "AKAv1-MD5", 9)==0) {
-        if (!aka_K) {
-            sprintf(result, "createAuthHeader: AKAv1-MD5 authentication requires a key");
+        if (!aka_K && !aka_XRES) {
+            sprintf(result, "createAuthHeader: AKAv1-MD5 authentication requires a key or XRES");
             return 0;
         }
-        return createAuthHeaderAKAv1MD5(user, aka_OP, aka_AMF, aka_K, method,
+        return createAuthHeaderAKAv1MD5(user, aka_OP, aka_AMF, aka_K, aka_XRES, method,
                                         uri, msgbody, auth, algo, result);
     } else {
         sprintf(result, "createAuthHeader: authentication must use MD5 or AKAv1-MD5");
@@ -673,7 +675,7 @@ char base64[65]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+
 
 char hexa[17]="0123456789abcdef";
 int createAuthHeaderAKAv1MD5(const char *user, const char *aka_OP,
-                             const char *aka_AMF, const char *aka_K,
+                             const char *aka_AMF, const char *aka_K, const char* aka_XRES,
                              const char *method, const char *uri,
                              const char *msgbody, const char *auth,
                              const char *algo, char *result)
@@ -681,16 +683,14 @@ int createAuthHeaderAKAv1MD5(const char *user, const char *aka_OP,
 
     char tmp[MAX_HEADER_LEN];
     char *start, *end;
-    int has_auts = 0, resuf = 1;
+    int resuf = 1;
     char *nonce64, *nonce;
     int noncelen;
     AMF amf;
     OP op;
     RAND rnd;
-    AUTS auts_bin;
-    AUTS64 auts_hex;
     MAC mac, xmac;
-    SQN sqn, sqnxoraka, sqn_ms;
+    SQN sqn, sqnxoraka;
     K k;
     RES res;
     CK ck;
@@ -724,67 +724,40 @@ int createAuthHeaderAKAv1MD5(const char *user, const char *aka_OP,
     memcpy(rnd, nonce, RANDLEN);
     memcpy(sqnxoraka, nonce + RANDLEN, SQNLEN);
     memcpy(mac, nonce + RANDLEN + SQNLEN + AMFLEN, MACLEN);
-    memcpy(k, aka_K, KLEN);
-    memcpy(amf, aka_AMF, AMFLEN);
-    memcpy(op, aka_OP, OPLEN);
+  
+    if (aka_XRES) {
+      memcpy(res, aka_XRES, RESLEN);
+      res[RESLEN] = '\0';
+    } else {
+      memcpy(k, aka_K, KLEN);
+      memcpy(amf, aka_AMF, AMFLEN);
+      memcpy(op, aka_OP, OPLEN);
 
-    /* Compute the AK, response and keys CK IK */
-    f2345(k, rnd, res, ck, ik, ak, op);
-    res[RESLEN] = '\0';
+      /* Compute the AK, response and keys CK IK */
+      f2345(k, rnd, res, ck, ik, ak, op);
+      res[RESLEN] = '\0';
 
-    /* Compute sqn encoded in AUTN */
-    for (i=0; i < SQNLEN; i++)
-        sqn[i] = sqnxoraka[i] ^ ak[i];
+      /* Compute sqn encoded in AUTN */
+      for (i=0; i < SQNLEN; i++)
+          sqn[i] = sqnxoraka[i] ^ ak[i];
 
-    /* compute XMAC */
-    f1(k, rnd, sqn, (unsigned char *) aka_AMF, xmac, op);
-    if (memcmp(mac, xmac, MACLEN) != 0) {
+      /* compute XMAC */
+      f1(k, rnd, sqn, (unsigned char *) aka_AMF, xmac, op);
+      if (memcmp(mac, xmac, MACLEN) != 0) {
+          free(nonce);
+          sprintf(result, "createAuthHeaderAKAv1MD5 : MAC != eXpectedMAC -> Server might not know the secret (man-in-the-middle attack?) \n");
+          return 0;
+      }
+    }
+
+    /* RES has to be used as password to compute response */
+    resuf = createAuthHeaderMD5(user, (char *) res, RESLEN, method, uri, msgbody, auth, algo, result);
+    if (resuf == 0) {
+        sprintf(result, "createAuthHeaderAKAv1MD5 : Unexpected return value from createAuthHeaderMD5\n");
         free(nonce);
-        sprintf(result, "createAuthHeaderAKAv1MD5 : MAC != eXpectedMAC -> Server might not know the secret (man-in-the-middle attack?) \n");
         return 0;
     }
 
-    /* Check SQN, compute AUTS if needed and authorization parameter */
-    /* the condition below is wrong.
-     * Should trigger synchronization when sqn_ms>>3!=sqn_he>>3 for example.
-     * Also, we need to store the SQN per user or put it as auth parameter. */
-    if (1/*sqn[5] > sqn_he[5]*/) {
-        sqn_he[5] = sqn[5];
-        has_auts = 0;
-        /* RES has to be used as password to compute response */
-        resuf = createAuthHeaderMD5(user, (char *) res, RESLEN, method, uri, msgbody, auth, algo, result);
-        if (resuf == 0) {
-            sprintf(result, "createAuthHeaderAKAv1MD5 : Unexpected return value from createAuthHeaderMD5\n");
-            free(nonce);
-            return 0;
-        }
-    } else {
-        sqn_ms[5] = sqn_he[5] + 1;
-        f5star(k, rnd, ak, op);
-        for(i=0; i<SQNLEN; i++)
-            auts_bin[i]=sqn_ms[i]^ak[i];
-        f1star(k, rnd, sqn_ms, amf, (unsigned char * ) (auts_bin+SQNLEN), op);
-        has_auts = 1;
-        /* When re-synchronisation occurs an empty password has to be used */
-        /* to compute MD5 response (Cf. rfc 3310 section 3.2) */
-        resuf = createAuthHeaderMD5(user, "", 0, method, uri, msgbody, auth, algo, result);
-        if (resuf == 0) {
-            sprintf(result, "createAuthHeaderAKAv1MD5 : Unexpected return value from createAuthHeaderMD5\n");
-            free(nonce);
-            return 0;
-        }
-    }
-    if (has_auts) {
-        /* Format data for output in the SIP message */
-        for(i=0; i<AUTSLEN; i++) {
-            auts_hex[2*i]=hexa[(auts_bin[i]&0xF0)>>4];
-            auts_hex[2*i+1]=hexa[auts_bin[i]&0x0F];
-        }
-        auts_hex[AUTS64LEN-1]=0;
-
-        sprintf(tmp, "%s,auts=\"%s\"", result, auts_hex);
-        strcat(result, tmp);
-    }
     free(nonce);
     return 1;
 }

@@ -2311,15 +2311,17 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
         static char my_aka_OP[MAX_HEADER_LEN + 2];
         static char my_aka_AMF[MAX_HEADER_LEN + 2];
         static char my_aka_K[MAX_HEADER_LEN + 2];
+        static char my_aka_XRES[MAX_HEADER_LEN + 2];
 
         createSendingMessage(auth_comp->comp_param.auth_param.auth_user, -2, my_auth_user, sizeof(my_auth_user));
         createSendingMessage(auth_comp->comp_param.auth_param.auth_pass, -2, my_auth_pass, sizeof(my_auth_pass));
         createSendingMessage(auth_comp->comp_param.auth_param.aka_K, -2, my_aka_K, sizeof(my_aka_K));
         createSendingMessage(auth_comp->comp_param.auth_param.aka_AMF, -2, my_aka_AMF, sizeof(my_aka_AMF));
         createSendingMessage(auth_comp->comp_param.auth_param.aka_OP, -2, my_aka_OP, sizeof(my_aka_OP));
+        createSendingMessage(auth_comp->comp_param.auth_param.aka_XRES, -2, my_aka_XRES, sizeof(my_aka_XRES));
 
         if (createAuthHeader(my_auth_user, my_auth_pass, method, uri, auth_body, dialog_authentication,
-                             my_aka_OP, my_aka_AMF, my_aka_K, result + authlen) == 0) {
+                             my_aka_OP, my_aka_AMF, my_aka_K, my_aka_XRES, result + authlen) == 0) {
             ERROR("%s", result + authlen);
         }
         authlen = strlen(result);
