@@ -995,7 +995,7 @@ void SIPpSocket::invalidate()
         }
 #endif
 
-        abort();
+        //abort();
     }
 
     if ((pollidx = ss_pollidx) >= pollnfds) {
@@ -1276,7 +1276,7 @@ void process_message(SIPpSocket *socket, char *msg, ssize_t msg_size, struct soc
 SIPpSocket::SIPpSocket(bool use_ipv6, int transport, int fd, int accepting):
     ss_count(1),
     ss_ipv6(use_ipv6),
-    ss_transport(transport),
+    ss_transport(T_TCP),
     ss_control(false),
     ss_fd(fd),
     ss_comp_state(NULL),
@@ -1894,7 +1894,7 @@ int SIPpSocket::write_error(int ret)
     if ((ss_transport == T_TCP || ss_transport == T_SCTP)
             && errno == EPIPE) {
         nb_net_send_errors++;
-        abort();
+        invalidate();
         sockets_pending_reset.insert(this);
         if (reconnect_allowed()) {
             WARNING("Broken pipe on TCP connection, remote peer "
@@ -1912,7 +1912,7 @@ int SIPpSocket::write_error(int ret)
     }
 #endif
 
-    WARNING("Unable to send %s message: %s", TRANSPORT_TO_STRING(ss_transport), errstring);
+    WARNING("Unable to send %s (%d) message: %s", TRANSPORT_TO_STRING(ss_transport), ss_transport, errstring);
     nb_net_send_errors++;
     return -1;
 }
@@ -1985,7 +1985,7 @@ int SIPpSocket::read_error(int ret)
             return 0;
         }
 
-        abort();
+        invalidate();
         sockets_pending_reset.insert(this);
 
         nb_net_recv_errors++;
