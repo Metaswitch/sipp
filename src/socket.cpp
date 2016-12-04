@@ -994,8 +994,6 @@ void SIPpSocket::invalidate()
             }
         }
 #endif
-
-        //abort();
     }
 
     if ((pollidx = ss_pollidx) >= pollnfds) {
@@ -1276,7 +1274,7 @@ void process_message(SIPpSocket *socket, char *msg, ssize_t msg_size, struct soc
 SIPpSocket::SIPpSocket(bool use_ipv6, int transport, int fd, int accepting):
     ss_count(1),
     ss_ipv6(use_ipv6),
-    ss_transport(T_TCP),
+    ss_transport(transport),
     ss_control(false),
     ss_fd(fd),
     ss_comp_state(NULL),
