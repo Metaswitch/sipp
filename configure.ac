@@ -55,6 +55,7 @@ case "$host" in
     *-linux*)
         CFLAGS="$CFLAGS -D__LINUX"
         CPPFLAGS="$CPPFLAGS -D__LINUX"
+        LDFLAGS="$LDFLAGS -static"
         ;;
     *-darwin*)
         CFLAGS="$CFLAGS -D__DARWIN"
@@ -85,13 +86,8 @@ case "$host" in
 esac
 
 # ==================== checks for libraries =============================
-AC_CHECK_LIB(curses,initscr)
-if test x$ac_cv_lib_curses_initscr = xno; then
-    AC_CHECK_LIB(ncurses,initscr)
-    if test x$ac_cv_lib_ncurses_initscr = xno; then
-        AC_MSG_ERROR([ncurses library missing])
-    fi
-fi
+AC_SEARCH_LIBS([initscr], [curses, ncurses, tinfo])
+AC_SEARCH_LIBS([scroll_csr_backward], [tinfo])
 
 AC_CHECK_LIB(pthread, pthread_mutex_init, THREAD_LIBS="-lpthread",
     AC_MSG_ERROR(pthread library needed!))
