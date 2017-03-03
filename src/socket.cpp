@@ -79,6 +79,8 @@ int gai_getsockaddr(struct sockaddr_storage* ss, const char* host,
     if (error == 0) {
         memcpy(ss, res->ai_addr, res->ai_addrlen);
         freeaddrinfo(res);
+    } else if (error == EAI_SYSTEM) {
+        WARNING("getaddrinfo failed with system error: %s", strerror(errno));
     } else {
         WARNING("getaddrinfo failed: %s", gai_strerror(error));
     }
