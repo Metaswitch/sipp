@@ -64,7 +64,7 @@ deadcall::~deadcall()
     free(reason);
 }
 
-bool deadcall::process_incoming(char * msg, struct sockaddr_storage * /*src*/)
+bool deadcall::process_incoming(char * msg, struct sockaddr_storage * /*src*/, SIPpSocket* /*sock*/)
 {
     char buffer[MAX_HEADER_LEN];
 

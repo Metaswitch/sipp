@@ -1267,7 +1267,7 @@ void process_message(SIPpSocket *socket, char *msg, ssize_t msg_size, struct soc
     if ((socket == localTwinSippSocket) || (socket == twinSippSocket) || (is_a_local_socket(socket))) {
         listener_ptr -> process_twinSippCom(msg);
     } else {
-        listener_ptr -> process_incoming(msg, src);
+        listener_ptr -> process_incoming(msg, src, socket);
     }
 }
 

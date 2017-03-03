@@ -605,7 +605,12 @@ call::~call()
         pthread_join(media_thread, NULL);
     }
 #endif
-
+    
+    for (std::map<std::string, SIPpSocket*>::iterator i = txn_sockets.begin();
+         i != txn_sockets.end();
+         i++) {
+        i->second->close();
+    }
 
     free(start_time_rtd);
     free(rtd_done);
@@ -721,7 +726,18 @@ bool call::connect_socket_if_needed()
             ERROR_NO("Unable to bind UDP socket");
         }
     } else { /* TCP, SCTP or TLS. */
-        struct sockaddr_storage *L_dest = &remote_sockaddr;
+        struct sockaddr_storage L_dest;
+
+        /* Resolve the remote host again.  This replicates the function (and code)
+         * of the open_connections function in sipp.cpp.  Repeating this here
+         * (just before opening a new connection) means that we'll round-robin our
+         * connections across all IP addresses to which the host resolves. */
+        /* FIXME: add DNS SRV support using liburli? */
+        if (gai_getsockaddr(&L_dest, remote_host, remote_port,
+                    AI_PASSIVE, AF_UNSPEC) != 0) {
+            ERROR("Unknown remote host '%s'.\n"
+                    "Use 'sipp -h' for details", remote_host);
+        }
 
         if ((associate_socket(SIPpSocket::new_sipp_call_socket(use_ipv6, transport, &existing))) == NULL) {
             ERROR_NO("Unable to get a TCP/SCTP/TLS socket");
@@ -734,10 +750,12 @@ bool call::connect_socket_if_needed()
         sipp_customize_socket(call_socket);
 
         if (use_remote_sending_addr) {
-            L_dest = &remote_sending_sockaddr;
+            memcpy(&L_dest,
+                    &remote_sockaddr,
+                    sizeof(remote_sockaddr));
         }
 
-        if (call_socket->connect(L_dest)) {
+        if (call_socket->connect(&L_dest)) {
             if (reconnect_allowed()) {
                 if(errno == EINVAL) {
                     /* This occurs sometime on HPUX but is not a true INVAL */
@@ -799,6 +817,7 @@ int call::send_raw(const char * msg, int index, int len)
 {
     SIPpSocket *sock;
     int rc;
+    char            txn[MAX_HEADER_LEN];
 
     callDebug("Sending %s message for call %s (index %d, hash %lu):\n%s\n\n",
               TRANSPORT_TO_STRING(transport), id, index, hash(msg), msg);
@@ -816,6 +835,11 @@ int call::send_raw(const char * msg, int index, int len)
     }
 
     sock = call_socket;
+    extract_transaction(txn, msg);
+
+    if (txn_sockets[txn] != NULL) {
+        sock = txn_sockets[txn];
+    }
 
     if ((use_remote_sending_addr) && (sendMode == MODE_SERVER)) {
         if (!call_remote_socket) {
@@ -2520,7 +2544,7 @@ void call::extract_cseq_method (char* method, char* msg)
     }
 }
 
-void call::extract_transaction (char* txn, char* msg)
+void call::extract_transaction (char* txn, const char* msg)
 {
     char *via = get_header_content(msg, "via:");
     if (!via) {
@@ -2699,7 +2723,7 @@ void call::queue_up(char *msg)
     queued_msg = strdup(msg);
 }
 
-bool call::process_incoming(char * msg, struct sockaddr_storage *src)
+bool call::process_incoming(char * msg, struct sockaddr_storage *src, SIPpSocket* sock)
 {
     int             reply_code;
     static char     request[65];
@@ -2738,6 +2762,14 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     if (!get_header(msg, "To:", false)[0] && !process_unexpected(msg)) {
         return false;
     }
+
+    extract_transaction (txn, msg);
+
+    if (sock && (sock != call_socket) && (txn_sockets[txn] == NULL)) {
+        sock->ss_count++;
+        txn_sockets[txn] = sock;
+    }
+
 
     if ((transport == T_UDP) && (retrans_enabled)) {
         /* Detects retransmissions from peer and retransmit the
@@ -2837,7 +2869,6 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
         request[0]=0;
         // extract the cseq method from the response
         extract_cseq_method (responsecseqmethod, msg);
-        extract_transaction (txn, msg);
     } else if((ptr = strchr(msg, ' '))) {
         if((ptr - msg) < 64) {
             memcpy(request, msg, ptr - msg);
