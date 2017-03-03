@@ -606,12 +606,6 @@ call::~call()
     }
 #endif
     
-    for (std::map<std::string, SIPpSocket*>::iterator i = txn_sockets.begin();
-         i != txn_sockets.end();
-         i++) {
-        i->second->close();
-    }
-
     free(start_time_rtd);
     free(rtd_done);
     free(debugBuffer);
