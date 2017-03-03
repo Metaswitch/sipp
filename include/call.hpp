@@ -74,7 +74,7 @@ public:
 
     virtual ~call();
 
-    virtual bool process_incoming(char * msg, struct sockaddr_storage *src = NULL);
+    virtual bool process_incoming(char * msg, struct sockaddr_storage *src = NULL, SIPpSocket* sock = NULL);
     virtual bool  process_twinSippCom(char * msg);
 
     virtual bool run();
@@ -195,6 +195,10 @@ protected:
     SIPpSocket *call_remote_socket;
     int            call_port;
 
+    // Map of transactions to the socket used for them, in case different
+    // transactions in this call came from different remote IP addresses.
+    std::map<std::string, SIPpSocket*> txn_sockets;
+
     void         * comp_state;
 
     int            deleted;
@@ -283,7 +287,7 @@ protected:
     void do_bookkeeping(message *curmsg);
 
     void  extract_cseq_method (char* responseCseq, char* msg);
-    void  extract_transaction (char* txn, char* msg);
+    void  extract_transaction (char* txn, const char* msg);
 
     int   send_raw(const char * msg, int index, int len);
     char * send_scene(int index, int *send_status, int *msgLen);
