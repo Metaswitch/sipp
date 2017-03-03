@@ -826,6 +826,9 @@ int call::send_raw(const char * msg, int index, int len)
 
     if (txn_sockets[txn] != NULL) {
         sock = txn_sockets[txn];
+        printf("Using transaction-specific socket %p\n", (void*)sock);
+    } else {
+        printf("No transaction-specific socket found for txn%s\n", txn);
     }
 
     if ((use_remote_sending_addr) && (sendMode == MODE_SERVER)) {
@@ -2755,6 +2758,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src, SIPpSocket
     if (sock && (sock != call_socket) && (txn_sockets[txn] == NULL)) {
         sock->ss_count++;
         txn_sockets[txn] = sock;
+        printf("Storing socket %p for txn %s\n", (void*)sock, txn);
     }
 
 
