@@ -546,6 +546,15 @@ call::~call()
     if(comp_state) {
         comp_free(&comp_state);
     }
+ 
+    for (std::map<std::string, SIPpSocket*>::iterator i = txn_sockets.begin();
+         i != txn_sockets.end();
+         i++) {
+        if ((i->second != NULL) && (i->second != call_remote_socket))
+        {
+            i->second->close();
+        }
+    }
 
     if (call_remote_socket && (call_remote_socket != main_remote_socket)) {
         call_remote_socket->close();
@@ -605,13 +614,7 @@ call::~call()
         pthread_join(media_thread, NULL);
     }
 #endif
-    
-    for (std::map<std::string, SIPpSocket*>::iterator i = txn_sockets.begin();
-         i != txn_sockets.end();
-         i++) {
-        i->second->close();
-    }
-
+   
     free(start_time_rtd);
     free(rtd_done);
     free(debugBuffer);
