@@ -73,6 +73,7 @@ static int resolve_ips(std::string host, std::vector<std::string>& out)
 {
     const struct addrinfo hints = {AI_PASSIVE, AF_UNSPEC,};
     struct addrinfo* res;
+    printf("Resolving %s...\n", host.c_str());
     int error = getaddrinfo(host.c_str(), NULL, &hints, &res);
 
     if (error != 0)
@@ -2537,9 +2538,10 @@ int open_connections()
         {
             fprintf(stderr, "Resolving remote host '%s'... ", remote_host);
 
-            if (resolve_ips(remote_host, remote_ips) != 0) {
-                ERROR("Unknown remote host '%s'.\n"
-                      "Use 'sipp -h' for details", remote_host);
+            int err = resolve_ips(remote_host, remote_ips);
+            if (err != 0) {
+                ERROR("Unknown remote host '%s' (%s, %s).\n"
+                      "Use 'sipp -h' for details", remote_host, gai_strerror(err), strerror(errno));
             }
 
             // Use the first remote IP by default.

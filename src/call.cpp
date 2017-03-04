@@ -735,10 +735,12 @@ bool call::connect_socket_if_needed()
          * (just before opening a new connection) means that we'll round-robin our
          * connections across all IP addresses to which the host resolves. */
         /* FIXME: add DNS SRV support using liburli? */
-        if (gai_getsockaddr(&L_dest, remote_ips[0].c_str(), remote_port,
+        size_t index = rand() % remote_ips.size();
+        strcpy(remote_ip, remote_ips[index].c_str());
+        if (gai_getsockaddr(&L_dest, remote_ip, remote_port,
                     AI_PASSIVE, AF_UNSPEC) != 0) {
-            ERROR("Unknown remote host '%s'.\n"
-                    "Use 'sipp -h' for details", remote_host);
+            ERROR("Could not get socket for IP address '%s'.\n",
+                    remote_ip);
         }
 
         if (remote_sockaddr.ss_family == AF_INET) {
