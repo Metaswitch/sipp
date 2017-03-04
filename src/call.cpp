@@ -731,15 +731,20 @@ bool call::connect_socket_if_needed()
     } else { /* TCP, SCTP or TLS. */
         struct sockaddr_storage L_dest;
 
-        /* Resolve the remote host again.  This replicates the function (and code)
-         * of the open_connections function in sipp.cpp.  Repeating this here
+        /* Pick a random remote IP address from the list. Doing this here
          * (just before opening a new connection) means that we'll round-robin our
          * connections across all IP addresses to which the host resolves. */
         /* FIXME: add DNS SRV support using liburli? */
-        if (gai_getsockaddr(&L_dest, remote_host, remote_port,
+        if (gai_getsockaddr(&L_dest, remote_ips[0].c_str(), remote_port,
                     AI_PASSIVE, AF_UNSPEC) != 0) {
             ERROR("Unknown remote host '%s'.\n"
                     "Use 'sipp -h' for details", remote_host);
+        }
+
+        if (remote_sockaddr.ss_family == AF_INET) {
+            strcpy(remote_ip_escaped, remote_ip);
+        } else {
+            sprintf(remote_ip_escaped, "[%s]", remote_ip);
         }
 
         if ((associate_socket(SIPpSocket::new_sipp_call_socket(use_ipv6, transport, &existing))) == NULL) {
