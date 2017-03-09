@@ -75,7 +75,7 @@ static int resolve_ips(std::string host, std::vector<std::string>& out)
     struct addrinfo* res;
     int error = getaddrinfo(host.c_str(), NULL, &hints, &res);
     // 40 characters is enough to store an IPv4 or IPv6 address.
-    char host[40];
+    char ipaddr[40];
 
     if (error != 0) {
         return error;
@@ -88,7 +88,7 @@ static int resolve_ips(std::string host, std::vector<std::string>& out)
     for (; res != NULL; res = res->ai_next) {
         // Convert the struct returned by getaddrinfo into a string.
         getnameinfo(res->ai_addr, res->ai_addrlen,
-                    host, 40,
+                    ipaddr, 40,
                     NULL, 0, NI_NUMERICSERV);
         ips_set.insert(host);
     }
