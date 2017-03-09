@@ -806,7 +806,7 @@ int call::send_raw(const char * msg, int index, int len)
 {
     SIPpSocket *sock;
     int rc;
-    char            txn[MAX_HEADER_LEN];
+    char txn[MAX_HEADER_LEN];
 
     callDebug("Sending %s message for call %s (index %d, hash %lu):\n%s\n\n",
               TRANSPORT_TO_STRING(transport), id, index, hash(msg), msg);

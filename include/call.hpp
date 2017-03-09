@@ -75,7 +75,7 @@ public:
     virtual ~call();
 
     virtual bool process_incoming(char* msg, struct sockaddr_storage* src = NULL, SIPpSocket* sock = NULL);
-    virtual bool process_twinSippCom(char * msg);
+    virtual bool process_twinSippCom(char* msg);
 
     virtual bool run();
     /* Terminate this call, depending on action results and timewait. */
