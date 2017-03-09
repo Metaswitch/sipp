@@ -547,6 +547,13 @@ call::~call()
         comp_free(&comp_state);
     }
 
+    for (std::map<std::string, SIPpSocket*>::iterator i = txn_sockets.begin(); i != txn_sockets.end(); i++) {
+        if ((i->second != NULL) && (i->second != call_remote_socket))
+        {
+            i->second->close();
+        }
+    }
+
     if (call_remote_socket && (call_remote_socket != main_remote_socket)) {
         call_remote_socket->close();
     }
@@ -799,6 +806,7 @@ int call::send_raw(const char * msg, int index, int len)
 {
     SIPpSocket *sock;
     int rc;
+    char txn[MAX_HEADER_LEN];
 
     callDebug("Sending %s message for call %s (index %d, hash %lu):\n%s\n\n",
               TRANSPORT_TO_STRING(transport), id, index, hash(msg), msg);
@@ -816,6 +824,17 @@ int call::send_raw(const char * msg, int index, int len)
     }
 
     sock = call_socket;
+    extract_transaction(txn, msg);
+
+    /* The initial request for this transaction may have come from a different
+     * IP address and port than the initial request for this scenario. If so,
+     * send responses back to the same IP address and port - without this, we
+     * would send the response to whoever sent the initial request, and that
+     * peer won't know about this particular transaction.  */
+
+    if (txn_sockets[txn] != NULL) {
+        sock = txn_sockets[txn];
+    }
 
     if ((use_remote_sending_addr) && (sendMode == MODE_SERVER)) {
         if (!call_remote_socket) {
@@ -2520,7 +2539,7 @@ void call::extract_cseq_method (char* method, char* msg)
     }
 }
 
-void call::extract_transaction (char* txn, char* msg)
+void call::extract_transaction (char* txn, const char* msg)
 {
     char *via = get_header_content(msg, "via:");
     if (!via) {
@@ -2699,7 +2718,7 @@ void call::queue_up(char *msg)
     queued_msg = strdup(msg);
 }
 
-bool call::process_incoming(char * msg, struct sockaddr_storage *src)
+bool call::process_incoming(char * msg, struct sockaddr_storage *src, SIPpSocket* sock)
 {
     int             reply_code;
     static char     request[65];
@@ -2738,6 +2757,19 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     if (!get_header(msg, "To:", false)[0] && !process_unexpected(msg)) {
         return false;
     }
+
+    extract_transaction (txn, msg);
+
+    /* If this request came from a different peer than the one who created this
+     * dialog, store off the socket, so that when we send responses on this
+     * transaction we can send them over this socket rather than the default
+     * call_socket.
+     */
+    if (sock && (sock != call_socket) && (txn_sockets[txn] == NULL)) {
+        sock->ss_count++;
+        txn_sockets[txn] = sock;
+    }
+
 
     if ((transport == T_UDP) && (retrans_enabled)) {
         /* Detects retransmissions from peer and retransmit the
@@ -2837,7 +2869,6 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
         request[0]=0;
         // extract the cseq method from the response
         extract_cseq_method (responsecseqmethod, msg);
-        extract_transaction (txn, msg);
     } else if((ptr = strchr(msg, ' '))) {
         if((ptr - msg) < 64) {
             memcpy(request, msg, ptr - msg);
