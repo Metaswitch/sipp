@@ -613,7 +613,6 @@ call::~call()
     }
 #endif
 
-
     free(start_time_rtd);
     free(rtd_done);
     free(debugBuffer);
@@ -728,7 +727,25 @@ bool call::connect_socket_if_needed()
             ERROR_NO("Unable to bind UDP socket");
         }
     } else { /* TCP, SCTP or TLS. */
-        struct sockaddr_storage *L_dest = &remote_sockaddr;
+        /* Pick a random remote IP address from the list. Doing this here
+         * (just before opening a new connection) means that we'll spread our
+         * connections across all IP addresses to which the host resolves. */
+
+        size_t index = rand() % remote_ips.size();
+        strcpy(remote_ip, remote_ips[index].c_str());
+
+        struct sockaddr_storage L_dest;
+        if (gai_getsockaddr(&L_dest, remote_ip, remote_port,
+                    AI_PASSIVE, AF_UNSPEC) != 0) {
+            ERROR("Could not get socket for IP address '%s'.\n",
+                  remote_ip);
+        }
+
+        if (remote_sockaddr.ss_family == AF_INET) {
+            strcpy(remote_ip_escaped, remote_ip);
+        } else {
+            sprintf(remote_ip_escaped, "[%s]", remote_ip);
+        }
 
         if ((associate_socket(SIPpSocket::new_sipp_call_socket(use_ipv6, transport, &existing))) == NULL) {
             ERROR_NO("Unable to get a TCP/SCTP/TLS socket");
@@ -741,10 +758,12 @@ bool call::connect_socket_if_needed()
         sipp_customize_socket(call_socket);
 
         if (use_remote_sending_addr) {
-            L_dest = &remote_sending_sockaddr;
+            memcpy(&L_dest,
+                   &remote_sockaddr,
+                   sizeof(remote_sockaddr));
         }
 
-        if (call_socket->connect(L_dest)) {
+        if (call_socket->connect(&L_dest)) {
             if (reconnect_allowed()) {
                 if(errno == EINVAL) {
                     /* This occurs sometime on HPUX but is not a true INVAL */

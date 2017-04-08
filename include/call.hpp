@@ -193,6 +193,8 @@ protected:
     char           *peer_tag;
 
     SIPpSocket *call_remote_socket;
+    char remote_ip[40];
+    char remote_ip_escaped[42];
     int            call_port;
 
     // Map of transactions to the socket used for them, in case different

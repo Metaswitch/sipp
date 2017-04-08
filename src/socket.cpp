@@ -69,6 +69,35 @@ int pending_messages = 0;
 
 map<string, SIPpSocket *>     map_perip_fd;
 
+static int resolve_ips(std::string host, std::vector<std::string>& out)
+{
+    const struct addrinfo hints = {AI_PASSIVE, AF_UNSPEC,};
+    struct addrinfo* res;
+    int error = getaddrinfo(host.c_str(), NULL, &hints, &res);
+    // 40 characters is enough to store an IPv4 or IPv6 address.
+    char ipaddr[40];
+
+    if (error != 0) {
+        return error;
+    }
+
+    // Loop over all the IP addresses returned by DNS and store them. Use a set
+    // to remove duplicates.
+    std::set<std::string> ips_set;
+
+    for (; res != NULL; res = res->ai_next) {
+        // Convert the struct returned by getaddrinfo into a string.
+        getnameinfo(res->ai_addr, res->ai_addrlen,
+                    ipaddr, 40,
+                    NULL, 0, NI_NUMERICSERV);
+        ips_set.insert(host);
+    }
+
+    out.insert(out.begin(), ips_set.begin(), ips_set.end());
+    return 0;
+}
+
+
 int gai_getsockaddr(struct sockaddr_storage* ss, const char* host,
                     const char *service, int flags, int family)
 {
@@ -79,6 +108,8 @@ int gai_getsockaddr(struct sockaddr_storage* ss, const char* host,
     if (error == 0) {
         memcpy(ss, res->ai_addr, res->ai_addrlen);
         freeaddrinfo(res);
+    } else if (error == EAI_SYSTEM) {
+        WARNING("getaddrinfo failed with system error: %s", strerror(errno));
     } else {
         WARNING("getaddrinfo failed: %s", gai_strerror(error));
     }
@@ -2506,19 +2537,17 @@ int open_connections()
         {
             fprintf(stderr, "Resolving remote host '%s'... ", remote_host);
 
-            /* FIXME: add DNS SRV support using liburli? */
-            if (gai_getsockaddr(&remote_sockaddr, remote_host, remote_port,
-                                AI_PASSIVE, AF_UNSPEC) != 0) {
-                ERROR("Unknown remote host '%s'.\n"
-                      "Use 'sipp -h' for details", remote_host);
+            int err = resolve_ips(remote_host, remote_ips);
+            if (err != 0) {
+                ERROR("Unknown remote host '%s' (%s, %s).\n"
+                      "Use 'sipp -h' for details", remote_host, gai_strerror(err), strerror(errno));
             }
 
-            get_inet_address(&remote_sockaddr, remote_ip, sizeof(remote_ip));
-            if (remote_sockaddr.ss_family == AF_INET) {
-                strcpy(remote_ip_escaped, remote_ip);
-            } else {
-                sprintf(remote_ip_escaped, "[%s]", remote_ip);
-            }
+            // Use the first remote IP for the initial value of
+            // remote_sockaddr. In multisocket mode, this will be overriden on
+            // a per-call basis.
+            gai_getsockaddr(&remote_sockaddr, remote_ips[0].c_str(), remote_port,
+                                AI_PASSIVE, AF_UNSPEC);
             fprintf(stderr, "Done.\n");
         }
     }
