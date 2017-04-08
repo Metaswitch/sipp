@@ -728,7 +728,7 @@ bool call::connect_socket_if_needed()
         }
     } else { /* TCP, SCTP or TLS. */
         /* Pick a random remote IP address from the list. Doing this here
-         * (just before opening a new connection) means that we'll round-robin our
+         * (just before opening a new connection) means that we'll spread our
          * connections across all IP addresses to which the host resolves. */
 
         size_t index = rand() % remote_ips.size();
@@ -738,7 +738,7 @@ bool call::connect_socket_if_needed()
         if (gai_getsockaddr(&L_dest, remote_ip, remote_port,
                     AI_PASSIVE, AF_UNSPEC) != 0) {
             ERROR("Could not get socket for IP address '%s'.\n",
-                    remote_ip);
+                  remote_ip);
         }
 
         if (remote_sockaddr.ss_family == AF_INET) {

@@ -353,12 +353,13 @@ void print_stats_in_file(FILE * f)
         }
 
         fprintf(f, "   Port   Total-time  Total-calls  Remote-host" SIPP_ENDL
-                "%19s   %-5d %6lu.%02lu s     %8llu  %s:%d(%s)" SIPP_ENDL SIPP_ENDL,
+                "%19s   %-5d %6lu.%02lu s     %8llu  %.*s:%d(%s)" SIPP_ENDL SIPP_ENDL,
                 temp_str,
                 local_port,
                 clock_tick / 1000, (clock_tick % 1000) / 10,
                 total_calls,
-                remote_ips.empty() ? "" : remote_ips[0].c_str(),
+                12, // Max width of remote_host to show
+                remote_host,
                 remote_port,
                 TRANSPORT_TO_STRING(transport));
     }

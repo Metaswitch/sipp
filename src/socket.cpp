@@ -2543,7 +2543,9 @@ int open_connections()
                       "Use 'sipp -h' for details", remote_host, gai_strerror(err), strerror(errno));
             }
 
-            // Use the first remote IP by default.
+            // Use the first remote IP for the initial value of
+            // remote_sockaddr. In multisocket mode, this will be overriden on
+            // a per-call basis.
             gai_getsockaddr(&remote_sockaddr, remote_ips[0].c_str(), remote_port,
                                 AI_PASSIVE, AF_UNSPEC);
             fprintf(stderr, "Done.\n");
