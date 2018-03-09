@@ -1,3 +1,8 @@
+/**
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+*/
+
 /*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -100,10 +105,10 @@ SendingMessage::SendingMessage(scenario *msg_scenario, char *src, bool skip_sani
     int    num_cr = get_cr_number(src);
 
     this->msg_scenario = msg_scenario;
-    
+
     dest = literal = (char *)malloc(strlen(src) + num_cr + 1);
     literalLen = 0;
- 
+
     current_line[0] = '\0';
     *dest = 0;
 
@@ -152,7 +157,7 @@ SendingMessage::SendingMessage(scenario *msg_scenario, char *src, bool skip_sani
 
 	  newcomp->type = E_Message_Literal;
 	  newcomp->literal = literal;
-	  newcomp->literalLen = literalLen; // length without the terminator 
+	  newcomp->literalLen = literalLen; // length without the terminator
 	  messageComponents.push_back(newcomp);
 	} else {
 	  free(literal);
@@ -358,7 +363,7 @@ SendingMessage::SendingMessage(scenario *msg_scenario, char *src, bool skip_sani
       *dest++ = '\0';
       literalLen = dest - literal;
       literal = (char *)realloc(literal, literalLen);
-      if (!literal) { ERROR("Out of memory!"); } 
+      if (!literal) { ERROR("Out of memory!"); }
 
       MessageComponent *newcomp = (MessageComponent *)calloc(1, sizeof(MessageComponent));
       if (!newcomp) { ERROR("Out of memory!"); }

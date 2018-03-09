@@ -1,3 +1,8 @@
+/**
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+*/
+
 /*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -647,7 +652,7 @@ scenario::scenario(char * filename, int deflt)
   char *method_list = NULL;
   unsigned int scenario_file_cursor = 0;
   int    L_content_length = 0 ;
-  char * peer; 
+  char * peer;
 
   last_recv_optional = false;
 
@@ -956,7 +961,7 @@ scenario::scenario(char * filename, int deflt)
         /* Sent messages descriptions */
 
 	/* 3pcc extended mode  */
-	if((ptr = xp_get_value((char *)"dest"))) { 
+	if((ptr = xp_get_value((char *)"dest"))) {
 	   peer = strdup(ptr) ;
 	   curmsg ->peer_dest = peer ;
            peer_map::iterator peer_it;
@@ -968,7 +973,7 @@ scenario::scenario(char * filename, int deflt)
 	     T_peer_infos infos;
 	     infos.peer_socket = 0;
 	     strcpy(infos.peer_host, get_peer_addr(peer));
-             peers[std::string(peer)] = infos; 
+             peers[std::string(peer)] = infos;
 	   }
 	} else if (extendedTwinSippMode) {
 	  ERROR("You must specify a 'dest' for sendCmd with extended 3pcc mode!");
@@ -1162,7 +1167,7 @@ CSample *parse_distribution(bool oldstyle = false) {
 
 /* 3pcc extended mode:
    get the correspondances between
-   slave and master names and their 
+   slave and master names and their
    addresses */
 
 void parse_slave_cfg()
@@ -1194,7 +1199,7 @@ void parse_slave_cfg()
 
 }
 
-// Determine in which mode the sipp tool has been 
+// Determine in which mode the sipp tool has been
 // launched (client, server, 3pcc client, 3pcc server, 3pcc extended master or slave)
 void scenario::computeSippMode()
 {
@@ -1718,7 +1723,7 @@ int isWellFormed(char * P_listeStr, int * nombre)
 
   (*nombre) = 0;
   sizeOf = strlen(P_listeStr);
-  // getting the number 
+  // getting the number
   if(sizeOf > 0)
     {
       // is the string well formed ? [0-9] [,]
@@ -1729,13 +1734,13 @@ int isWellFormed(char * P_listeStr, int * nombre)
             {
             case ',':
               if(isANumber == false)
-                {   
+                {
                   return(0);
                 }
               else
                 {
-                  (*nombre)++;             
-                } 
+                  (*nombre)++;
+                }
               isANumber = false;
               break;
             case '0':
@@ -1755,13 +1760,13 @@ int isWellFormed(char * P_listeStr, int * nombre)
               break;
             case '\0':
               if(isANumber == false)
-                {   
+                {
                   return(0);
                 }
               else
                 {
                   (*nombre)++;
-                } 
+                }
               break;
             default:
               return(0);
@@ -1771,8 +1776,8 @@ int isWellFormed(char * P_listeStr, int * nombre)
   return(1);
 }
 
-int createIntegerTable(char * P_listeStr, 
-                       unsigned int ** listeInteger, 
+int createIntegerTable(char * P_listeStr,
+                       unsigned int ** listeInteger,
                        int * sizeOfList)
 {
   int nb=0;
@@ -1780,7 +1785,7 @@ int createIntegerTable(char * P_listeStr,
   char * ptr_prev = P_listeStr;
   unsigned int current_int;
 
-  if(P_listeStr){ 
+  if(P_listeStr){
    if(isWellFormed(P_listeStr, sizeOfList) == 1)
      {
        (*listeInteger) = new unsigned int[(*sizeOfList)];
@@ -1793,12 +1798,12 @@ int createIntegerTable(char * P_listeStr,
                  (*listeInteger)[nb] = current_int;
                nb++;
                ptr_prev = ptr+1;
-             } 
+             }
            ptr++;
          }
 
        // Read the last
-       sscanf(ptr_prev, "%u", &current_int); 
+       sscanf(ptr_prev, "%u", &current_int);
        if (nb<(*sizeOfList))
          (*listeInteger)[nb] = current_int;
        nb++;
@@ -1995,7 +2000,7 @@ char * default_scenario [] = {
 "\n"
 "</scenario>\n"
 "\n"
-, 
+,
 
 /************* Default_scenario[1] ***************/
 (char *)
@@ -2400,7 +2405,7 @@ char * default_scenario [] = {
 "\n",
 
 /************* Default_scenario[4] ***************/
-(char*) 
+(char*)
 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"
 "<!DOCTYPE scenario SYSTEM \"sipp.dtd\">\n"
 "\n"
@@ -2532,7 +2537,7 @@ char * default_scenario [] = {
 "\n",
 
 /************* Default_scenario[5] ***************/
-(char*) 
+(char*)
 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"
 "<!DOCTYPE scenario SYSTEM \"sipp.dtd\">\n"
 "\n"
@@ -2628,7 +2633,7 @@ char * default_scenario [] = {
 "\n",
 
 /************* Default_scenario[6] ***************/
-(char*) 
+(char*)
 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"
 "<!DOCTYPE scenario SYSTEM \"sipp.dtd\">\n"
 "\n"
