@@ -1,4 +1,4 @@
-# Some of the content of this file has been edited by Metaswitch, in the time
+# Some of the content of this repo has been edited by Metaswitch, in the time
 # period from December 2012 to the present time.
 
 #   SIPp - a SIP protocol test tool
