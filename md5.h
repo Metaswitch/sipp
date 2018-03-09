@@ -1,7 +1,7 @@
-/**
+/*
  * Some of the content of this file has been edited by Metaswitch, in the time
  * period from December 2012 to the present time.
-*/
+ */
 
 /*
   Copyright (C) 1999, 2002 Aladdin Enterprises.  All rights reserved.
