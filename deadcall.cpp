@@ -1,3 +1,8 @@
+/**
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+*/
+
 /*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -73,8 +78,12 @@ bool deadcall::process_incoming(char * msg, struct sockaddr_storage *src) {
 
   WARNING("%s, received '%s'", buffer, msg);
 
-  TRACE_MSG("-----------------------------------------------\n"
-             "Dead call %s received a %s message:\n\n%s\n",
+  TRACE_MSG("-----------------------------------------------
+"
+             "Dead call %s received a %s message:
+
+%s
+",
 	     id, TRANSPORT_TO_STRING(transport), msg);
 
   expiration = clock_tick + deadcall_wait;
@@ -83,7 +92,8 @@ bool deadcall::process_incoming(char * msg, struct sockaddr_storage *src) {
 
 bool deadcall::process_twinSippCom(char * msg) {
   CStat::globalStat(CStat::E_DEAD_CALL_MSGS);
-  TRACE_MSG("Received twin message for dead (%s) call %s:%s\n", reason, id, msg);
+  TRACE_MSG("Received twin message for dead (%s) call %s:%s
+", reason, id, msg);
   return true;
 }
 

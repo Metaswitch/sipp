@@ -1,3 +1,6 @@
+# Some of the content of this file has been edited by Metaswitch, in the time
+# period from December 2012 to the present time.
+
 #   SIPp - a SIP protocol test tool
 #   Copyright (C) 2003,2004,2005,2006 - The Authors
 #   This program is free software: you can redistribute it and/or modify
@@ -19,7 +22,7 @@ BUILDING
 This is the SIPp package. Please refer to the http://sipp.sourceforge.net/
 webpage for details and download of the last version.
 
-Normally, you should be able to build SIPp by just typing 
+Normally, you should be able to build SIPp by just typing
 "autoreconf -ivf; ./configure --with-pcap --with-sctp; make" in the
 current directory. Then "sipp -h" will give you access to the online help.
 
@@ -27,8 +30,8 @@ CONTRIBUTING
 ************
 
 SIPp is free software, under the terms of the GPL licence (see the
-LICENCE.txt file for details). You can contribute to the development 
-of SIPp and contact us via Sourceforge to integrate your changes. If you 
+LICENCE.txt file for details). You can contribute to the development
+of SIPp and contact us via Sourceforge to integrate your changes. If you
 make changes in Sipp, *PLEASE* follow a few coding rules:
 
   - Use 80 columns code,
@@ -51,7 +54,7 @@ make changes in Sipp, *PLEASE* follow a few coding rules:
     (better portability). (e.g. prefer "printf" to "cout <<" ).
 
   - Check your changes can be compiled on:
- 
+
       - Linux,
       - HPUX,
       - Tru64,
