@@ -1,7 +1,7 @@
-/**
+/*
  * Some of the content of this file has been edited by Metaswitch, in the time
  * period from December 2012 to the present time.
-*/
+ */
 
 /*
  *  This program is free software; you can redistribute it and/or modify
@@ -145,7 +145,7 @@ private:
   /* How long until sending this message times out. */
   unsigned int   send_timeout;
 
-  /* Last received message (expected,  not optional, and not 
+  /* Last received message (expected,  not optional, and not
    * retransmitted) and the associated hash. Stills setted until a new
    * scenario steps sends a message */
   unsigned long    last_recv_hash;
@@ -175,7 +175,7 @@ private:
   play_args_t play_args_v;
 #endif
 
-  
+
   /* holds the auth header and if the challenge was 401 or 407 */
   char         * dialog_authentication;
   int            dialog_challenge_type;
@@ -191,7 +191,7 @@ private:
   bool           *rtd_done;
 
   char           *peer_tag;
-  
+
   struct sipp_socket *call_remote_socket;
   int            call_port;
 
@@ -203,7 +203,7 @@ private:
                                    // ie ACK received or sent
                                    // => init to false
   bool           ack_is_pending;   // == true if an ACK is pending
-                                   // Needed to avoid abortCall sending a 
+                                   // Needed to avoid abortCall sending a
                                    // CANCEL instead of BYE in some extreme
                                    // cases for 3PCC scenario.
                                    // => init to false
@@ -228,7 +228,7 @@ private:
   /* Store the last action result to allow  */
   /* call to continue and mark it as failed */
   T_ActionResult last_action_result;
-  
+
   /* rc == true means call not deleted by processing */
   void formatNextReqUrl (char* next_req_url);
   void computeRouteSetAndRemoteTargetUri (char* rrList, char* contact, bool bRequestIncoming);
@@ -236,8 +236,8 @@ private:
 
   bool executeMessage(message *curmsg);
   T_ActionResult executeAction(char * msg, message *message);
-  void  extractSubMessage(char * msg, char * matchingString, char* result, bool case_indep, 
-							     int occurrence, bool headers); 
+  void  extractSubMessage(char * msg, char * matchingString, char* result, bool case_indep,
+							     int occurrence, bool headers);
   bool  rejectCall();
   double get_rhs(CAction *currentAction);
 
@@ -248,13 +248,13 @@ private:
   char* createSendingMessage(char * src, int P_index, bool skip_sanity = false);
   char* createSendingMessage(SendingMessage *src, int P_index, char *msg_buffer, int buflen, int *msgLen=NULL);
 
-  // method for the management of unexpected messages 
+  // method for the management of unexpected messages
   bool  checkInternalCmd(char* cmd);  // check of specific internal command
                                       // received from the twin socket
                                       // used for example to cancel the call
                                       // of the third party
   bool  check_peer_src(char* msg,
-		int search_index);    // 3pcc extended mode:check if 
+		int search_index);    // 3pcc extended mode:check if
 				      // the twin message received
 				      // comes from the expected sender
   void   sendBuffer(char *buf, int len = 0);     // send a message out of a scenario
@@ -264,7 +264,7 @@ private:
 
   int   sendCmdMessage(message *curmsg); // 3PCC
 
-  int   sendCmdBuffer(char* cmd); // for 3PCC, send a command out of a 
+  int   sendCmdBuffer(char* cmd); // for 3PCC, send a command out of a
                                   // scenario execution
 
   static void readInputFileContents(const char* fileName);
