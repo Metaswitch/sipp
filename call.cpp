@@ -93,15 +93,15 @@ unsigned int get_tdm_map_number() {
     if (tdm_map[(random + i - 1) % interval] == false) {
       nb = (random + i - 1) % interval;
       found = true;
-    } 
+    }
     i++;
-  } 
+  }
 
   if (!found) {
     return 0;
   } else {
     return nb+1;
-  } 
+  }
 }
 
 /* When should this call wake up? */
@@ -150,16 +150,15 @@ uint32_t get_remote_ip_media(char *msg)
       return INADDR_NONE;
     }
     begin += sizeof("c=IN IP4 ") - 1;
-    end = strstr(begin, "
-");
+    end = strstr(begin, "\r\n");
     if (!end) {
       free(my_msg);
       return INADDR_NONE;
     }
-    *end = '';
+    *end = '\0';
     memset(ip, 0, 32);
     strncpy(ip, begin, sizeof(ip) - 1);
-    ip[sizeof(ip) - 1] = '';
+    ip[sizeof(ip) - 1] = '\0';
     free(my_msg);
     return inet_addr(ip);
 }
@@ -188,15 +187,14 @@ uint8_t get_remote_ipv6_media(char *msg, struct in6_addr *addr)
       return 0;
     }
     begin += sizeof("c=IN IP6 ") - 1;
-    end = strstr(begin, "
-");
+    end = strstr(begin, "\r\n");
     if (!end) {
       free(my_msg);
       return 0;
     }
-    *end = '';
+    *end = '\0';
     strncpy(ip, begin, sizeof(ip) -1);
-    ip[sizeof(ip) - 1] = '';
+    ip[sizeof(ip) - 1] = '\0';
     free(my_msg);
     if (!inet_pton(AF_INET6, ip, addr)) {
       return 0;
@@ -221,8 +219,7 @@ uint16_t get_remote_port_media(char *msg, int pattype)
     } else if (pattype == PAT_VIDEO) {
       pattern = "m=video ";
     } else {
-	ERROR("Internal error: Undefined media pattern %d
-", 3);
+	ERROR("Internal error: Undefined media pattern %d\n", 3);
     }
 
     char *my_msg = strdup(msg);
@@ -236,16 +233,15 @@ uint16_t get_remote_port_media(char *msg, int pattype)
       return 0;
     }
     begin += strlen(pattern) - 1;
-    end = strstr(begin, "
-");
+    end = strstr(begin, "\r\n");
     if (!end) {
       free(my_msg);
       ERROR("get_remote_port_media: no CRLF found");
     }
-    *end = '';
+    *end = '\0';
     memset(number, 0, sizeof(number));
     strncpy(number, begin, sizeof(number) - 1);
-    number[sizeof(number) - 1] = '';
+    number[sizeof(number) - 1] = '\0';
     free(my_msg);
     return atoi(number);
 }
@@ -333,23 +329,18 @@ unsigned long call::hash(char * msg) {
       if (!strncmp(msg, "SIP/2.0", strlen("SIP/2.0"))) {
 	/* Add the first line into the hash. */
 	hdr = msg + strlen("SIP/2.0");
-	while ((c = *hdr++) && (c != ''))
+	while ((c = *hdr++) && (c != '\r'))
 	  hash = c + (hash << 6) + (hash << 16) - hash;
 	/* Add the body (if any) into the hash. */
-	hdr = strstr(msg, "
-
-");
+	hdr = strstr(msg, "\r\n\r\n");
 	if (hdr) {
-	  hdr += strlen("
-
-");
+	  hdr += strlen("\r\n\r\n");
 	  while ((c = *hdr++))
 	    hash = c + (hash << 6) + (hash << 16) - hash;
 	}
       }
   } else {
-    ERROR("Internal error: Invalid rtcheck %d
-", rtcheck);
+    ERROR("Internal error: Invalid rtcheck %d\n", rtcheck);
   }
 
   return hash;
@@ -447,7 +438,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
   nb_last_delay = 0;
   use_ipv6 = ipv6;
   queued_msg = NULL;
-  
+
   dialog_authentication = NULL;
   dialog_challenge_type = 0;
 
@@ -472,7 +463,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
   } else {
     memset(&call_peer, 0, sizeof(call_peer));
   }
-  
+
   // initialising the CallVariable with the Scenario variable
   int i;
   VariableTable *userVars = NULL;
@@ -512,7 +503,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
     transactions = NULL;
   }
 
-  // If not updated by a message we use the start time 
+  // If not updated by a message we use the start time
   // information to compute rtd information
   start_time_rtd = (unsigned long long *)malloc(sizeof(unsigned long long) * call_scenario->stats->nRtds());
   if (!start_time_rtd) {
@@ -585,8 +576,7 @@ void call::init(scenario * call_scenario, struct sipp_socket *socket, struct soc
     }
   }
 
-  callDebug("Starting call %s
-", id);
+  callDebug("Starting call %s\n", id);
 
   setRunning();
 }
@@ -667,7 +657,7 @@ call::~call()
   if (use_tdmmap) {
     tdm_map[tdm_map_number] = false;
   }
-  
+
 # ifdef PCAPPLAY
   if (media_thread != 0) {
     pthread_cancel(media_thread);
@@ -776,7 +766,7 @@ bool call::connect_socket_if_needed()
     } else {
       saddr.ss_family       = AF_INET;
     }
-    
+
     if (peripsocket) {
       struct addrinfo * h ;
       struct addrinfo   hints;
@@ -786,7 +776,7 @@ bool call::connect_socket_if_needed()
       getaddrinfo(peripaddr,
                   NULL,
                   &hints,
-                  &h); 
+                  &h);
       memcpy(&saddr,
              h->ai_addr,
              SOCK_ADDR_SIZE(
@@ -834,8 +824,7 @@ bool call::connect_socket_if_needed()
         (_RCAST(struct sockaddr_in6 *, &L_dest))->sin6_port = htons((short)remote_port);
       }
     } else {
-      ERROR("Unknown remote host '%s'.
-"
+      ERROR("Unknown remote host '%s'.\n"
                "Use 'sipp -h' for details", remote_host);
       memcpy(&L_dest,
              &remote_sockaddr,
@@ -849,7 +838,7 @@ bool call::connect_socket_if_needed()
     if (existing) {
       return true;
     }
-    
+
     sipp_customize_socket(call_socket);
 
     if (use_remote_sending_addr) {
@@ -915,35 +904,30 @@ bool call::lost(int index)
   return (((double)rand() / (double)RAND_MAX) < (percent / 100.0));
 }
 
-int call::send_raw(char * msg, int index, int len) 
+int call::send_raw(char * msg, int index, int len)
 {
   struct sipp_socket *sock;
   int rc;
 
-  callDebug("Sending %s message for call %s (index %d, hash %u):
-%s
+  callDebug("Sending %s message for call %s (index %d, hash %u):\n%s\n\n", TRANSPORT_TO_STRING(transport), id, index, hash(msg), msg);
 
-", TRANSPORT_TO_STRING(transport), id, index, hash(msg), msg);
- 
   if (useShortMessagef == 1) {
       struct timeval currentTime;
       GET_TIME (&currentTime);
       char* cs=get_header_content(msg,"CSeq:");
-      TRACE_SHORTMSG("%s	S	%s	CSeq:%s	%s
-",
+      TRACE_SHORTMSG("%s\tS\t%s\tCSeq:%s\t%s\n",
              CStat::formatTime(&currentTime),id, cs, get_first_line(msg));
-  }  
- 
+  }
+
   if((index!=-1) && (lost(index))) {
     TRACE_MSG("%s message voluntary lost (while sending).", TRANSPORT_TO_STRING(transport));
-    callDebug("%s message voluntary lost (while sending) (index %d, hash %u).
-", TRANSPORT_TO_STRING(transport), index, hash(msg));
-    
+    callDebug("%s message voluntary lost (while sending) (index %d, hash %u).\n", TRANSPORT_TO_STRING(transport), index, hash(msg));
+
     if(comp_state) { comp_free(&comp_state); }
     call_scenario->messages[index] -> nb_lost++;
     return 0;
   }
-  
+
   sock = call_socket;
 
   if ((use_remote_sending_addr) && (sendMode == MODE_SERVER)) {
@@ -984,7 +968,7 @@ int call::send_raw(char * msg, int index, int len)
   if (len==0) {
     len = strlen(msg);
   }
-  
+
   assert(sock);
 
   rc = write_socket(sock, msg, len, WS_BUFFER, &call_peer);
@@ -1098,7 +1082,7 @@ char * call::get_header(char* message, char * name, bool content)
   char src_tmp[MAX_HEADER_LEN + 1];
 
   /* returns empty string in case of error */
-  last_header[0] = '';
+  last_header[0] = '\0';
 
   if((!message) || (!strlen(message))) {
     return last_header;
@@ -1112,8 +1096,7 @@ char * call::get_header(char* message, char * name, bool content)
 
   do
   {
-    snprintf(src_tmp, MAX_HEADER_LEN, "
-%s", name);
+    snprintf(src_tmp, MAX_HEADER_LEN, "\n%s", name);
     src = message;
     dest = last_header;
 
@@ -1125,16 +1108,14 @@ char * call::get_header(char* message, char * name, bool content)
 	     src++;
       }
       first_time = false;
-      ptr = strchr(src, '
-');
+      ptr = strchr(src, '\n');
 
       /* Multiline headers always begin with a tab or a space
        * on the subsequent lines */
       while((ptr) &&
 	  ((*(ptr+1) == ' ' ) ||
-	   (*(ptr+1) == '	')    )) {
-	ptr = strchr(ptr + 1, '
-'); 
+	   (*(ptr+1) == '\t')    )) {
+	ptr = strchr(ptr + 1, '\n');
       }
 
       if(ptr) { *ptr = 0; }
@@ -1142,16 +1123,14 @@ char * call::get_header(char* message, char * name, bool content)
       if (dest != last_header) {
 	/* Remove trailing whitespaces, tabs, and CRs */
 	while ((dest > last_header) &&
-	    ((*(dest-1) == ' ') || (*(dest-1) == '') || (*(dest-1) == '
-') || (*(dest-1) == '	'))) {
+	    ((*(dest-1) == ' ') || (*(dest-1) == '\r') || (*(dest-1) == '\n') || (*(dest-1) == '\t'))) {
 	  *(--dest) = 0;
 	}
 
 	dest += sprintf(dest, ",");
       }
       dest += sprintf(dest, "%s", src);
-      if(ptr) { *ptr = '
-'; }
+      if(ptr) { *ptr = '\n'; }
 
       src++;
     }
@@ -1192,33 +1171,30 @@ char * call::get_header(char* message, char * name, bool content)
   *(dest--) = 0;
 
   /* Remove trailing whitespaces, tabs, and CRs */
-  while ((dest > last_header) && 
-         ((*dest == ' ') || (*dest == '')|| (*dest == '	'))) {
+  while ((dest > last_header) &&
+         ((*dest == ' ') || (*dest == '\r')|| (*dest == '\t'))) {
     *(dest--) = 0;
   }
- 
+
   /* Remove leading whitespaces */
   for (start = last_header; *start == ' '; start++);
 
   /* remove enclosed CRs in multilines */
   /* don't remove enclosed CRs for multiple headers (e.g. Via) (Rhys) */
-  while((ptr = strstr(last_header, "
-")) != NULL
-        && (   *(ptr + 2) == ' ' 
-            || *(ptr + 2) == '' 
-            || *(ptr + 2) == '	') ) {
+  while((ptr = strstr(last_header, "\r\n")) != NULL
+        && (   *(ptr + 2) == ' '
+            || *(ptr + 2) == '\r'
+            || *(ptr + 2) == '\t') ) {
     /* Use strlen(ptr) to include trailing zero */
     memmove(ptr, ptr+1, strlen(ptr));
   }
 
   /* Remove illegal double CR characters */
-  while((ptr = strstr(last_header, "")) != NULL) {
+  while((ptr = strstr(last_header, "\r\r")) != NULL) {
     memmove(ptr, ptr+1, strlen(ptr));
   }
-  /* Remove illegal double Newline characters */  
-  while((ptr = strstr(last_header, "
-
-")) != NULL) {
+  /* Remove illegal double Newline characters */
+  while((ptr = strstr(last_header, "\n\n")) != NULL) {
     memmove(ptr, ptr+1, strlen(ptr));
   }
 
@@ -1240,11 +1216,10 @@ char * call::get_first_line(char * message)
 
   src = message;
   dest = last_header;
-  
+
   int i=0;
   while (*src){
-    if((*src=='
-')||(*src=='')){
+    if((*src=='\n')||(*src=='\r')){
       break;
     }
     else
@@ -1254,7 +1229,7 @@ char * call::get_first_line(char * message)
     i++;
     src++;
   }
-  
+
   return last_header;
 }
 
@@ -1288,15 +1263,14 @@ char * call::get_last_request_uri ()
 	return strdup("");
      }
 
-     if(!(last_request_uri = (char *) malloc(tmp_len+1))) ERROR("Cannot allocate !
-");
+     if(!(last_request_uri = (char *) malloc(tmp_len+1))) ERROR("Cannot allocate !\n");
      memset(last_request_uri, 0, sizeof(last_request_uri));
      if(tmp && (tmp_len > 0)){
        strncpy(last_request_uri, tmp, tmp_len);
      }
-     last_request_uri[tmp_len] = '';
+     last_request_uri[tmp_len] = '\0';
      return last_request_uri;
-  
+
 }
 
 char * call::send_scene(int index, int *send_status, int *len)
@@ -1336,13 +1310,12 @@ char * call::send_scene(int index, int *send_status, int *len)
   if (dest) {
     L_ptr1=msg_name ;
     L_ptr2=dest ;
-    while ((*L_ptr2 != ' ') && (*L_ptr2 != '
-') && (*L_ptr2 != '	'))  {
+    while ((*L_ptr2 != ' ') && (*L_ptr2 != '\n') && (*L_ptr2 != '\t'))  {
       *L_ptr1 = *L_ptr2;
       L_ptr1 ++;
       L_ptr2 ++;
     }
-    *L_ptr1 = '' ;
+    *L_ptr1 = '\0' ;
   }
 
   if (strcmp(msg_name,"ACK") == 0) {
@@ -1350,17 +1323,11 @@ char * call::send_scene(int index, int *send_status, int *len)
     ack_is_pending = false ;
   }
 
-  /* Fix: Remove extra "
-" if message body ends with "
-
-" */
+  /* Fix: Remove extra "\r\n" if message body ends with "\r\n\r\n" */
   tmplen = (*len) - 1;
-  if ((dest[tmplen] == dest[tmplen-2] && dest[tmplen] == '
-')
-      && (dest[tmplen-1] == dest[tmplen-3] && dest[tmplen-1] == ''))  {
-    hdrbdry = strstr(dest, "
-
-");
+  if ((dest[tmplen] == dest[tmplen-2] && dest[tmplen] == '\n')
+      && (dest[tmplen-1] == dest[tmplen-3] && dest[tmplen-1] == '\r'))  {
+    hdrbdry = strstr(dest, "\r\n\r\n");
     if (NULL != hdrbdry &&  hdrbdry != dest+(tmplen-3))  {
         *len = (*len) - 2;
     }
@@ -1528,8 +1495,7 @@ bool call::executeMessage(message *curmsg) {
     curmsg->sessions++;
     do_bookkeeping(curmsg);
     executeAction(NULL, curmsg);
-    callDebug("Pausing call until %d (is now %d).
-", paused_until, clock_tick);
+    callDebug("Pausing call until %d (is now %d).\n", paused_until, clock_tick);
     setPaused();
     return true;
   }
@@ -1553,8 +1519,7 @@ bool call::executeMessage(message *curmsg) {
     return(next());
   }
   else if(curmsg -> M_type == MSG_TYPE_NOP) {
-    callDebug("Executing NOP at index %d.
-", curmsg->index);
+    callDebug("Executing NOP at index %d.\n", curmsg->index);
     do_bookkeeping(curmsg);
     executeAction(NULL, curmsg);
     return(next());
@@ -1576,8 +1541,8 @@ bool call::executeMessage(message *curmsg) {
     /* Handle counters and RTDs for this message. */
     do_bookkeeping(curmsg);
 
-    /* decide whether to increment cseq or not 
-     * basically increment for anything except response, ACK or CANCEL 
+    /* decide whether to increment cseq or not
+     * basically increment for anything except response, ACK or CANCEL
      * Note that cseq is only used by the [cseq] keyword, and
      * not by default
      */
@@ -1589,7 +1554,7 @@ bool call::executeMessage(message *curmsg) {
           ++cseq;
           incr_cseq = 1;
     }
-    
+
     msg_snd = send_scene(msg_index, &send_status, &msgLen);
     if(send_status == -1 && errno == EWOULDBLOCK) {
       if (incr_cseq) --cseq;
@@ -1628,7 +1593,7 @@ bool call::executeMessage(message *curmsg) {
     last_send_len = msgLen;
     last_send_msg = (char *) realloc(last_send_msg, msgLen+1);
     memcpy(last_send_msg, msg_snd, msgLen);
-    last_send_msg[msgLen] = '';
+    last_send_msg[msgLen] = '\0';
 
     if (curmsg->start_txn) {
       transactions[curmsg->start_txn - 1].txnID = (char *)realloc(transactions[curmsg->start_txn - 1].txnID, MAX_HEADER_LEN);
@@ -1645,10 +1610,9 @@ bool call::executeMessage(message *curmsg) {
       recv_retrans_recv_index = last_recv_index;
       recv_retrans_send_index = curmsg->index;
 
-      callDebug("Set Retransmission Hash: %u (recv index %d, send index %d)
-", recv_retrans_hash, recv_retrans_recv_index, recv_retrans_send_index);
+      callDebug("Set Retransmission Hash: %u (recv index %d, send index %d)\n", recv_retrans_hash, recv_retrans_recv_index, recv_retrans_send_index);
 
-      /* Prevent from detecting the cause relation between send and recv 
+      /* Prevent from detecting the cause relation between send and recv
        * in the next valid send */
       last_recv_hash = 0;
     }
@@ -1687,7 +1651,7 @@ bool call::executeMessage(message *curmsg) {
       recv_timeout = 0;
       curmsg->nb_timeout++;
       if (curmsg->on_timeout < 0) {
-        // if you set a timeout but not a label, the call is aborted 
+        // if you set a timeout but not a label, the call is aborted
         WARNING("Call-Id: %s, receive timeout on message %s:%d without label to jump to (ontimeout attribute): aborting call",
                    id, curmsg->desc, curmsg->index);
         computeStat(CStat::E_CALL_FAILED);
@@ -1749,20 +1713,17 @@ bool call::run()
   message *curmsg;
   if (initCall) {
     if(msg_index >= (int)call_scenario->initmessages.size()) {
-      ERROR("Scenario initialization overrun for call %s (%p) (index = %d)
-", id, this, msg_index);
+      ERROR("Scenario initialization overrun for call %s (%p) (index = %d)\n", id, this, msg_index);
     }
     curmsg = call_scenario->initmessages[msg_index];
   } else {
     if(msg_index >= (int)call_scenario->messages.size()) {
-      ERROR("Scenario overrun for call %s (%p) (index = %d)
-", id, this, msg_index);
+      ERROR("Scenario overrun for call %s (%p) (index = %d)\n", id, this, msg_index);
     }
     curmsg = call_scenario->messages[msg_index];
   }
 
-  callDebug("Processing message %d of type %d for call %s at %u.
-", msg_index, curmsg->M_type, id, clock_tick);
+  callDebug("Processing message %d of type %d for call %s at %u.\n", msg_index, curmsg->M_type, id, clock_tick);
 
   if (curmsg->condexec != -1) {
     bool exec = M_callVariableTable->getVar(curmsg->condexec)->isSet();
@@ -1770,8 +1731,7 @@ bool call::run()
 	exec = !exec;
     }
     if (!exec) {
-     callDebug("Conditional variable %s %s set, so skipping message %d.
-", call_scenario->allocVars->getName(curmsg->condexec), curmsg->condexec_inverse ? "" : "not", msg_index);
+     callDebug("Conditional variable %s %s set, so skipping message %d.\n", call_scenario->allocVars->getName(curmsg->condexec), curmsg->condexec_inverse ? "" : "not", msg_index);
      return next();
     }
   }
@@ -1787,8 +1747,7 @@ bool call::run()
 
     int rtAllowed = min(bInviteTransaction ? max_invite_retrans : max_non_invite_retrans, max_udp_retrans);
 
-    callDebug("Retransmisison required (%d retransmissions, max %d)
-", nb_retrans, rtAllowed);
+    callDebug("Retransmisison required (%d retransmissions, max %d)\n", nb_retrans, rtAllowed);
 
     if(nb_retrans > rtAllowed) {
       call_scenario->messages[last_send_index] -> nb_timeout ++;
@@ -1846,16 +1805,13 @@ bool call::run()
   if(paused_until) {
     /* Process a pending pause instruction until delay expiration */
     if(paused_until > clock_tick) {
-      callDebug("Call is paused until %d (now %d).
-", paused_until, clock_tick);
+      callDebug("Call is paused until %d (now %d).\n", paused_until, clock_tick);
       setPaused();
-      callDebug("Running: %d (wake %d).
-", running, wake());
+      callDebug("Running: %d (wake %d).\n", running, wake());
       return true;
     }
     /* Our pause is over. */
-    callDebug("Pause complete, waking up.
-");
+    callDebug("Pause complete, waking up.\n");
     paused_until = 0;
     return next();
   }
@@ -1872,112 +1828,58 @@ char *default_message_names[] = {
 };
 char *default_message_strings[] = {
 	/* 3pcc_abort */
-	"call-id: [call_id]
-internal-cmd: abort_call
-
-",
+	"call-id: [call_id]\ninternal-cmd: abort_call\n\n",
 	/* ack */
-        "ACK [last_Request_URI] SIP/2.0
-"
-        "[last_Via]
-"
-        "[last_From]
-"
-        "[last_To]
-"
-        "Call-ID: [call_id]
-"
-        "CSeq: [last_cseq_number] ACK
-"
-        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>
-"
-        "Max-Forwards: 70
-"
-        "Subject: Performance Test
-"
-        "Content-Length: 0
-
-",
+        "ACK [last_Request_URI] SIP/2.0\n"
+        "[last_Via]\n"
+        "[last_From]\n"
+        "[last_To]\n"
+        "Call-ID: [call_id]\n"
+        "CSeq: [last_cseq_number] ACK\n"
+        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>\n"
+        "Max-Forwards: 70\n"
+        "Subject: Performance Test\n"
+        "Content-Length: 0\n\n",
 	/* ack2, the only difference is Via, I don't quite know why. */
-        "ACK [last_Request_URI] SIP/2.0
-"
-        "Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
-"
-        "[last_From]
-"
-        "[last_To]
-"
-        "Call-ID: [call_id]
-"
-        "CSeq: [last_cseq_number] ACK
-"
-        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>
-"
-        "Max-Forwards: 70
-"
-        "Subject: Performance Test
-"
-        "Content-Length: 0
-
-",
+        "ACK [last_Request_URI] SIP/2.0\n"
+        "Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]\n"
+        "[last_From]\n"
+        "[last_To]\n"
+        "Call-ID: [call_id]\n"
+        "CSeq: [last_cseq_number] ACK\n"
+        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>\n"
+        "Max-Forwards: 70\n"
+        "Subject: Performance Test\n"
+        "Content-Length: 0\n\n",
 	/* bye */
-        "BYE [last_Request_URI] SIP/2.0
-"
-        "Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
-"
-        "[last_From]
-"
-        "[last_To]
-"
-        "Call-ID: [call_id]
-"
-        "CSeq: [last_cseq_number+1] BYE
-"
-        "Max-Forwards: 70
-"
-        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>
-"
-        "Content-Length: 0
-
-",
+        "BYE [last_Request_URI] SIP/2.0\n"
+        "Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]\n"
+        "[last_From]\n"
+        "[last_To]\n"
+        "Call-ID: [call_id]\n"
+        "CSeq: [last_cseq_number+1] BYE\n"
+        "Max-Forwards: 70\n"
+        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>\n"
+        "Content-Length: 0\n\n",
 	/* cancel */
-        "CANCEL [last_Request_URI] SIP/2.0
-"
-        "[last_Via]
-"
-        "[last_From]
-"
-        "[last_To]
-"
-        "Call-ID: [call_id]
-"
-	"CSeq: [last_cseq_number] CANCEL
-"
-        "Max-Forwards: 70
-"
-        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>
-"
-        "Content-Length: 0
-
-",
+        "CANCEL [last_Request_URI] SIP/2.0\n"
+        "[last_Via]\n"
+        "[last_From]\n"
+        "[last_To]\n"
+        "Call-ID: [call_id]\n"
+	"CSeq: [last_cseq_number] CANCEL\n"
+        "Max-Forwards: 70\n"
+        "Contact: <sip:sipp@[local_ip]:[local_port];transport=[transport]>\n"
+        "Content-Length: 0\n\n",
 	/* 200 */
-	"SIP/2.0 200 OK
-"
-	"[last_Via:]
-"
-	"[last_From:]
-"
-	"[last_To:]
-"
-	"[last_Call-ID:]
-"
-	"[last_CSeq:]
-"
-	"Contact: <sip:[local_ip]:[local_port];transport=[transport]>
-"
-	"Content-Length: 0
-
-"
+	"SIP/2.0 200 OK\n"
+	"[last_Via:]\n"
+	"[last_From:]\n"
+	"[last_To:]\n"
+	"[last_Call-ID:]\n"
+	"[last_CSeq:]\n"
+	"Contact: <sip:[local_ip]:[local_port];transport=[transport]>\n"
+	"Content-Length: 0\n\n"
 };
 
 SendingMessage **default_messages;
@@ -2059,23 +1961,16 @@ bool call::process_unexpected(char * msg)
 
   WARNING("%s, received '%s'", buffer, msg);
 
-  TRACE_MSG("-----------------------------------------------
-"
-             "Unexpected %s message received:
-
-%s
-",
+  TRACE_MSG("-----------------------------------------------\n"
+             "Unexpected %s message received:\n\n%s\n",
              TRANSPORT_TO_STRING(transport),
              msg);
 
-  callDebug("Unexpected %s message received (index %d, hash %u):
-
-%s
-",
+  callDebug("Unexpected %s message received (index %d, hash %u):\n\n%s\n",
              TRANSPORT_TO_STRING(transport), msg_index, hash(msg), msg);
 
   if (default_behaviors & DEFAULT_BEHAVIOR_ABORTUNEXP) {
-    // if twin socket call => reset the other part here 
+    // if twin socket call => reset the other part here
     if (twinSippSocket && (msg_index > 0)) {
       sendCmdBuffer(createSendingMessage(get_default_message("3pcc_abort"), -1));
     }
@@ -2109,21 +2004,20 @@ bool call::abortCall(bool writeLog)
 
   char * src_recv = NULL ;
 
-  callDebug("Aborting call %s (index %d).
-", id, msg_index);
+  callDebug("Aborting call %s (index %d).\n", id, msg_index);
 
   if (last_send_msg != NULL) {
     is_inv = !strncmp(last_send_msg, "INVITE", 6);
   } else {
     is_inv = false;
-  }  
+  }
   if ((creationMode != MODE_SERVER) && (msg_index > 0)) {
     if ((call_established == false) && (is_inv)) {
       src_recv = last_recv_msg ;
       char   L_msg_buffer[SIPP_MAX_MSG_SIZE];
-      L_msg_buffer[0] = '';
+      L_msg_buffer[0] = '\0';
 
-      // Answer unexpected errors (4XX, 5XX and beyond) with an ACK 
+      // Answer unexpected errors (4XX, 5XX and beyond) with an ACK
       // Contributed by F. Tarek Rogers
       if((src_recv) && (get_reply_code(src_recv) >= 400)) {
         sendBuffer(createSendingMessage(get_default_message("ack"), -2));
@@ -2156,16 +2050,14 @@ bool call::abortCall(bool writeLog)
        * (although it could be something like a message message, therefore we
        * check that we received a message. */
       char   L_msg_buffer[SIPP_MAX_MSG_SIZE];
-      L_msg_buffer[0] = '';
+      L_msg_buffer[0] = '\0';
       sendBuffer(createSendingMessage(get_default_message("bye"), -1));
     }
   }
 
   if (writeLog && useCallDebugf) {
-    TRACE_CALLDEBUG ("-------------------------------------------------------------------------------
-", id);
-    TRACE_CALLDEBUG ("Call debugging information for call %s:
-", id);
+    TRACE_CALLDEBUG ("-------------------------------------------------------------------------------\n", id);
+    TRACE_CALLDEBUG ("Call debugging information for call %s:\n", id);
     TRACE_CALLDEBUG("%s", debugBuffer);
   }
 
@@ -2271,7 +2163,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
   char *dest = msg_buffer;
   bool supresscrlf = false;
 
-  *dest = '';
+  *dest = '\0';
 
   for (int i = 0; i < src->numComponents(); i++) {
     MessageComponent *comp = src->getComponent(i);
@@ -2286,7 +2178,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	} else {
 	  memcpy(dest, comp->literal, comp->literalLen);
 	  dest += comp->literalLen;
-          *dest = '';
+          *dest = '\0';
 	}
 	break;
       case E_Message_Remote_IP:
@@ -2352,15 +2244,13 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 #ifdef PCAPPLAY
 	char *begin = dest;
 	while (begin > msg_buffer) {
-	  if (*begin == '
-') {
+	  if (*begin == '\n') {
 	    break;
 	  }
 	  begin--;
 	}
 	if (begin == msg_buffer) {
-	  ERROR("Can not find beginning of a line for the media port!
-");
+	  ERROR("Can not find beginning of a line for the media port!\n");
 	}
 	if (strstr(begin, "audio")) {
 	  if (media_ip_is_ipv6) {
@@ -2428,8 +2318,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	break;
       case E_Message_Authentication:
 	if (auth_marker) {
-	  ERROR("Only one [authentication] keyword is currently supported!
-");
+	  ERROR("Only one [authentication] keyword is currently supported!\n");
 	}
 	auth_marker = dest;
 	dest += snprintf(dest, left, "[authentication place holder]");
@@ -2443,8 +2332,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
       case E_Message_Routes:
 	if (dialog_route_set) {
 	  dest += sprintf(dest, "Route: %s", dialog_route_set);
-	} else if (*(dest - 1) == '
-') {
+	} else if (*(dest - 1) == '\n') {
 	  supresscrlf = true;
 	}
 	break;
@@ -2481,8 +2369,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	 } else if (var->isBool()) {
 	   dest += sprintf(dest, "false");
 	 }
-	 if (*(dest - 1) == '
-') {
+	 if (*(dest - 1) == '\n') {
 	   supresscrlf = true;
 	 }
 	 break;
@@ -2501,7 +2388,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	for (int i = 0, j = 0; i < length; i++, j++) {
 	  *dest++ = filltext[j % filllen];
 	}
-	*dest = '';
+	*dest = '\0';
 	break;
       }
       case E_Message_File: {
@@ -2509,8 +2396,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	createSendingMessage(comp->comp_param.filename, -2, buffer, sizeof(buffer));
 	FILE *f = fopen(buffer, "r");
 	if (!f) {
-	  ERROR("Could not open '%s': %s
-", buffer, strerror(errno));
+	  ERROR("Could not open '%s': %s\n", buffer, strerror(errno));
 	}
 	int ret;
 	while ((ret = fread(dest, 1, left, f)) > 0) {
@@ -2518,8 +2404,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 		dest += ret;
 	}
 	if (ret < 0) {
-	  ERROR("Error reading '%s': %s
-", buffer, strerror(errno));
+	  ERROR("Error reading '%s': %s\n", buffer, strerror(errno));
 	}
 	fclose(f);
 	break;
@@ -2530,8 +2415,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	/* We are injecting an authentication line. */
 	if (char *tmp = strstr(orig_dest, "[authentication")) {
 	  if (auth_marker) {
-	    ERROR("Only one [authentication] keyword is currently supported!
-");
+	    ERROR("Only one [authentication] keyword is currently supported!\n");
 	  }
 	  auth_marker = tmp;
 	  auth_comp = (struct MessageComponent *)calloc(1, sizeof(struct MessageComponent));
@@ -2540,12 +2424,11 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 
 	  tmp = strchr(auth_marker, ']');
 	  char c = *tmp;
-	  *tmp = '';
+	  *tmp = '\0';
 	  SendingMessage::parseAuthenticationKeyword(call_scenario, auth_comp, auth_marker);
 	  *tmp = c;
 	}
-	if (*(dest - 1) == '
-') {
+	if (*(dest - 1) == '\n') {
 	  supresscrlf = true;
 	}
 	break;
@@ -2555,8 +2438,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
 	if(last_header) {
 	  dest += sprintf(dest, "%s", last_header);
 	}
-	if (*(dest - 1) == '
-') {
+	if (*(dest - 1) == '\n') {
 	  supresscrlf = true;
 	}
 	break;
@@ -2605,14 +2487,10 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
   char *body;
   char *auth_body = NULL;
   if (length_marker || auth_marker) {
-    body = strstr(msg_buffer, "
-
-");
+    body = strstr(msg_buffer, "\r\n\r\n");
     if (body) {
-	auth_body = body;    
-	auth_body += strlen("
-
-");
+	auth_body = body;
+	auth_body += strlen("\r\n\r\n");
     }
   }
 
@@ -2628,9 +2506,7 @@ char* call::createSendingMessage(SendingMessage *src, int P_index, char *msg_buf
       length_marker[5] = tmp;
     } else {
       // Other cases: Content-Length is 0
-      sprintf(length_marker, "    0
-
-");
+      sprintf(length_marker, "    0\r\n\r\n");
     }
   }
 
@@ -2722,10 +2598,7 @@ bool call::process_twinSippCom(char * msg)
   bool            found = false;
   T_ActionResult  actionResult;
 
-  callDebug("Processing incoming command for call-ID %s:
-%s
-
-", id, msg);
+  callDebug("Processing incoming command for call-ID %s:\n%s\n\n", id, msg);
 
   setRunning();
 
@@ -2739,13 +2612,8 @@ bool call::process_twinSippCom(char * msg)
 	  continue;
 	}
 	/* The received message is different from the expected one */
-	TRACE_MSG("Unexpected control message received (I was expecting a different type of message):
-%s
-", msg);
-	callDebug("Unexpected control message received (I was expecting a different type of message):
-%s
-
-", msg);
+	TRACE_MSG("Unexpected control message received (I was expecting a different type of message):\n%s\n", msg);
+	callDebug("Unexpected control message received (I was expecting a different type of message):\n%s\n\n", msg);
 	return rejectCall();
       } else {
 	if(extendedTwinSippMode){                   // 3pcc extended mode
@@ -2753,9 +2621,7 @@ bool call::process_twinSippCom(char * msg)
 	    found = true;
 	    break;
 	  } else{
-	    WARNING("Unexpected sender for the received peer message 
-%s
-", msg);
+	    WARNING("Unexpected sender for the received peer message \n%s\n", msg);
 	    return rejectCall();
 	  }
 	}
@@ -2771,12 +2637,10 @@ bool call::process_twinSippCom(char * msg)
       do_bookkeeping(call_scenario->messages[search_index]);
 
       // variable treatment
-      // Remove , 
- at the end of a received command
+      // Remove \r, \n at the end of a received command
       // (necessary for transport, to be removed for usage)
-      while ( (msg[strlen(msg)-1] == '
-') &&
-      (msg[strlen(msg)-2] == '') ) {
+      while ( (msg[strlen(msg)-1] == '\n') &&
+      (msg[strlen(msg)-2] == '\r') ) {
         msg[strlen(msg)-2] = 0;
       }
       actionResult = executeAction(msg, call_scenario->messages[search_index]);
@@ -2793,13 +2657,8 @@ bool call::process_twinSippCom(char * msg)
 	}
       }
     } else {
-      TRACE_MSG("Unexpected control message received (no such message found):
-%s
-", msg);
-      callDebug("Unexpected control message received (no such message found):
-%s
-
-", msg);
+      TRACE_MSG("Unexpected control message received (no such message found):\n%s\n", msg);
+      callDebug("Unexpected control message received (no such message found):\n%s\n\n", msg);
       return rejectCall();
     }
     msg_index = search_index; //update the state machine
@@ -2817,17 +2676,16 @@ bool call::checkInternalCmd(char * cmd)
   L_ptr1 = strstr(cmd, "internal-cmd:");
   if (!L_ptr1) {return (false);}
   L_ptr1 += 13 ;
-  while((*L_ptr1 == ' ') || (*L_ptr1 == '	')) { L_ptr1++; }
+  while((*L_ptr1 == ' ') || (*L_ptr1 == '\t')) { L_ptr1++; }
   if (!(*L_ptr1)) {return (false);}
   L_ptr2 = L_ptr1;
-  while((*L_ptr2) && 
-        (*L_ptr2 != ' ') && 
-        (*L_ptr2 != '	') && 
-        (*L_ptr2 != '') && 
-        (*L_ptr2 != '
-')) { 
+  while((*L_ptr2) &&
+        (*L_ptr2 != ' ') &&
+        (*L_ptr2 != '\t') &&
+        (*L_ptr2 != '\r') &&
+        (*L_ptr2 != '\n')) {
     L_ptr2 ++;
-  } 
+  }
   if(!*L_ptr2) { return (false); }
   L_backup = *L_ptr2;
   *L_ptr2 = 0;
@@ -2850,15 +2708,14 @@ bool call::check_peer_src(char * msg, int search_index)
  L_ptr1 = strstr(msg, "From:");
  if (!L_ptr1) {return (false);}
  L_ptr1 += 5 ;
- while((*L_ptr1 == ' ') || (*L_ptr1 == '	')) { L_ptr1++; }
+ while((*L_ptr1 == ' ') || (*L_ptr1 == '\t')) { L_ptr1++; }
  if (!(*L_ptr1)) {return (false);}
  L_ptr2 = L_ptr1;
   while((*L_ptr2) &&
         (*L_ptr2 != ' ') &&
-        (*L_ptr2 != '	') &&
-        (*L_ptr2 != '') &&
-        (*L_ptr2 != '
-')) {
+        (*L_ptr2 != '\t') &&
+        (*L_ptr2 != '\r') &&
+        (*L_ptr2 != '\n')) {
     L_ptr2 ++;
   }
   if(!*L_ptr2) { return (false); }
@@ -2868,7 +2725,7 @@ bool call::check_peer_src(char * msg, int search_index)
     *L_ptr2 = L_backup;
     return(true);
   }
- 
+
   *L_ptr2 = L_backup;
   return (false);
 }
@@ -2888,11 +2745,10 @@ void call::extract_cseq_method (char* method, char* msg)
       value++;
       char *end = value;
       int nbytes = 0;
-      /* A '' terminates the line, so we want to catch that too. */
-      while ((*end != '') && (*end != '
-')) { end++; nbytes++; }
+      /* A '\r' terminates the line, so we want to catch that too. */
+      while ((*end != '\r') && (*end != '\n')) { end++; nbytes++; }
       if (nbytes > 0) strncpy (method, value, nbytes);
-      method[nbytes] = '';
+      method[nbytes] = '\0';
     }
   }
 }
@@ -2901,13 +2757,13 @@ void call::extract_transaction (char* txn, char* msg)
 {
   char *via = get_header_content(msg, "via:");
   if (!via) {
-    txn[0] = '';
+    txn[0] = '\0';
     return;
   }
 
   char *branch = strstr(via, ";branch=");
   if (!branch) {
-    txn[0] = '';
+    txn[0] = '\0';
     return;
   }
 
@@ -2915,7 +2771,7 @@ void call::extract_transaction (char* txn, char* msg)
   while (*branch && *branch != ';' && *branch != ',' && !isspace(*branch)) {
     *txn++ = *branch++;
   }
-  *txn = '';
+  *txn = '\0';
 }
 
 void call::formatNextReqUrl (char* next_req_url)
@@ -2925,13 +2781,13 @@ void call::formatNextReqUrl (char* next_req_url)
      that needs to be removed
    */
   char* actual_req_url = strchr(next_req_url, '<');
-  if (actual_req_url) 
+  if (actual_req_url)
   {
     /* using a temporary buffer */
     char tempBuffer[MAX_HEADER_LEN];
     strcpy(tempBuffer, actual_req_url + 1);
     actual_req_url = strrchr(tempBuffer, '>');
-    *actual_req_url = '';
+    *actual_req_url = '\0';
     strcpy(next_req_url, tempBuffer);
   }
 
@@ -2973,9 +2829,9 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
         pointer = strrchr(rr, ',');
       }
 
-      if (pointer) 
+      if (pointer)
       {
-        if (!isFirst) 
+        if (!isFirst)
         {
           if (strlen(actual_rr) )
           {
@@ -2986,8 +2842,8 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
             strcpy(actual_rr, pointer + 1);
           }
           strcat(actual_rr, ",");
-        } 
-        else 
+        }
+        else
         {
           isFirst = false;
           if (NULL == strstr (pointer, ";lr"))
@@ -3006,17 +2862,17 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
             strcat(actual_rr, ",");
           }
         }
-      } 
-      else 
+      }
+      else
       {
-        if (!isFirst) 
+        if (!isFirst)
         {
             strcat(actual_rr, rr);
-        } 
+        }
         //
         // this is the *only* RR header that was found
         //
-        else 
+        else
         {
           if (NULL == strstr (rr, ";lr"))
           {
@@ -3035,7 +2891,7 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
         }
         break;
       }
-      *pointer = '';
+      *pointer = '\0';
   }
 
   if (bCopyContactToRR)
@@ -3051,12 +2907,12 @@ void call::computeRouteSetAndRemoteTargetUri (char* rr, char* contact, bool bReq
     }
   }
 
-  if (strlen(actual_rr)) 
+  if (strlen(actual_rr))
   {
     dialog_route_set = (char *)
         calloc(1, strlen(actual_rr) + 2);
     sprintf(dialog_route_set, "%s", actual_rr);
-  } 
+  }
 
   if (strlen (targetURI))
   {
@@ -3123,10 +2979,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
   T_ActionResult  actionResult;
 
   getmilliseconds();
-  callDebug("Processing %d byte incoming message for call-ID %s (hash %u):
-%s
-
-", strlen(msg), id, hash(msg), msg);
+  callDebug("Processing %d byte incoming message for call-ID %s (hash %u):\n%s\n\n", strlen(msg), id, hash(msg), msg);
 
   setRunning();
 
@@ -3144,8 +2997,8 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     paused_until = 0;
     return run();
   }
-  responsecseqmethod[0] = '';
-  txn[0] = '';
+  responsecseqmethod[0] = '\0';
+  txn[0] = '\0';
 
   if((transport == T_UDP) && (retrans_enabled)) {
     /* Detects retransmissions from peer and retransmit the
@@ -3158,8 +3011,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
       if(lost(recv_retrans_recv_index)) {
 	TRACE_MSG("%s message (retrans) lost (recv).",
 	      TRANSPORT_TO_STRING(transport));
-	callDebug("%s message (retrans) lost (recv) (hash %u)
-", TRANSPORT_TO_STRING(transport), hash(msg));
+	callDebug("%s message (retrans) lost (recv) (hash %u)\n", TRANSPORT_TO_STRING(transport), hash(msg));
 
 	if(comp_state) { comp_free(&comp_state); }
 	call_scenario->messages[recv_retrans_recv_index] -> nb_lost++;
@@ -3200,13 +3052,13 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
   }
 
   /* Is it a response ? */
-  if((msg[0] == 'S') && 
+  if((msg[0] == 'S') &&
      (msg[1] == 'I') &&
      (msg[2] == 'P') &&
      (msg[3] == '/') &&
      (msg[4] == '2') &&
      (msg[5] == '.') &&
-     (msg[6] == '0')    ) {    
+     (msg[6] == '0')    ) {
 
     reply_code = get_reply_code(msg);
     if(!reply_code) {
@@ -3214,9 +3066,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
         return false; // Call aborted by unexpected message handling
       }
 #ifdef PCAPPLAY
-    } else if ((hasMedia == 1) && *(strstr(msg, "
-
-")+4) != '') {
+    } else if ((hasMedia == 1) && *(strstr(msg, "\r\n\r\n")+4) != '\0') {
       /* Get media info if we find something like an SDP */
       get_remote_media_addr(msg);
 #endif
@@ -3249,10 +3099,10 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
       /* In case of INVITE or re-INVITE, ACK or PRACK
          get the media info if needed (= we got a pcap
          play action) */
-      if ((strncmp(request, "INVITE", 6) == 0) 
-       || (strncmp(request, "ACK", 3) == 0) 
-       || (strncmp(request, "PRACK", 5) == 0)     		
-       && (hasMedia == 1)) 
+      if ((strncmp(request, "INVITE", 6) == 0)
+       || (strncmp(request, "ACK", 3) == 0)
+       || (strncmp(request, "PRACK", 5) == 0)
+       && (hasMedia == 1))
         get_remote_media_addr(msg);
 #endif
 
@@ -3283,7 +3133,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     /* TODO : this is a little buggy: If a 100 trying from an INVITE
      * is delayed by the network until the BYE is sent, it may
      * stop BYE transmission erroneously, if the BYE also expects
-     * a 100 trying. */    
+     * a 100 trying. */
     break;
   }
 
@@ -3297,24 +3147,17 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
       if(matches_scenario(search_index, reply_code, request, responsecseqmethod, txn)) {
         if (contig || call_scenario->messages[search_index]->optional == OPTIONAL_GLOBAL) {
          found = true;
-         break;  
+         break;
         } else {
 	  if (int checkTxn = call_scenario->messages[search_index]->response_txn) {
 	    /* This is a reply to an old transaction. */
 	    if (!strcmp(transactions[checkTxn - 1].txnID, txn)) {
 		/* This reply is provisional, so it should have no effect if we recieve it out-of-order. */
 		if (reply_code >= 100 && reply_code <= 199) {
-		  TRACE_MSG("-----------------------------------------------
-"
-		      "Ignoring provisional %s message for transaction %s:
-
-%s
-",
+		  TRACE_MSG("-----------------------------------------------\n"
+		      "Ignoring provisional %s message for transaction %s:\n\n%s\n",
 		      TRANSPORT_TO_STRING(transport), call_scenario->transactions[checkTxn - 1].name, msg);
-		  callDebug("Ignoring provisional %s message for transaction %s (hash %u):
-
-%s
-",
+		  callDebug("Ignoring provisional %s message for transaction %s (hash %u):\n\n%s\n",
 		      TRANSPORT_TO_STRING(transport), call_scenario->transactions[checkTxn - 1].name, hash(msg), msg);
 		  return true;
 		} else if (int ackIndex = transactions[checkTxn - 1].ackIndex) {
@@ -3329,22 +3172,12 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
 		   * that it is not a retransmission of the final response. */
 		  if (transactions[checkTxn - 1].txnResp == hash(msg)) {
 		    /* We have gotten this retransmission out-of-order, let's just ignore it. */
-		    TRACE_MSG("-----------------------------------------------
-"
-			"Ignoring final %s message for transaction %s:
-
-%s
-",
+		    TRACE_MSG("-----------------------------------------------\n"
+			"Ignoring final %s message for transaction %s:\n\n%s\n",
 			TRANSPORT_TO_STRING(transport), call_scenario->transactions[checkTxn - 1].name, msg);
-		    callDebug("Ignoring final %s message for transaction %s (hash %u):
-
-%s
-",
+		    callDebug("Ignoring final %s message for transaction %s (hash %u):\n\n%s\n",
 			TRANSPORT_TO_STRING(transport), call_scenario->transactions[checkTxn - 1].name, hash(msg), msg);
-		    WARNING("Ignoring final %s message for transaction %s (hash %u):
-
-%s
-",
+		    WARNING("Ignoring final %s message for transaction %s (hash %u):\n\n%s\n",
 			TRANSPORT_TO_STRING(transport), call_scenario->transactions[checkTxn - 1].name, hash(msg), msg);
 		    return true;
 		  }
@@ -3416,8 +3249,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
   if(lost(search_index)) {
     TRACE_MSG("%s message lost (recv).",
                TRANSPORT_TO_STRING(transport));
-    callDebug("%s message lost (recv) (hash %u).
-",
+    callDebug("%s message lost (recv) (hash %u).\n",
                TRANSPORT_TO_STRING(transport), hash(msg));
     if(comp_state) { comp_free(&comp_state); }
     call_scenario->messages[search_index] -> nb_lost++;
@@ -3460,8 +3292,8 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     if (rcseq > cseq) cseq = rcseq;
   }
 
-  /* This is an ACK/PRACK or a response, and its index is greater than the 
-   * current active retransmission message, so we stop the retrans timer. 
+  /* This is an ACK/PRACK or a response, and its index is greater than the
+   * current active retransmission message, so we stop the retrans timer.
    * True also for CANCEL and BYE that we also want to answer to */
   if(((reply_code) ||
       ((!strcmp(request, "ACK")) ||
@@ -3470,7 +3302,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
      (search_index > last_send_index)) {
    /*
     * We should stop any retransmission timers on receipt of a provisional response only for INVITE
-    * transactions. Non INVITE transactions continue to retransmit at T2 until a final response is 
+    * transactions. Non INVITE transactions continue to retransmit at T2 until a final response is
     * received
     */
     if ( (0 == reply_code) || // means this is a request.
@@ -3562,8 +3394,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
    * in our messages. */
   last_recv_index = search_index;
   last_recv_hash = cookie;
-  callDebug("Set Last Recv Hash: %u (recv index %d)
-", last_recv_hash, last_recv_index);
+  callDebug("Set Last Recv Hash: %u (recv index %d)\n", last_recv_hash, last_recv_index);
   last_recv_msg = (char *) realloc(last_recv_msg, strlen(msg) + 1);
   strcpy(last_recv_msg, msg);
 
@@ -3582,8 +3413,7 @@ bool call::process_incoming(char * msg, struct sockaddr_storage *src)
     unsigned int candidate;
 
     if (call_scenario->messages[search_index]->next && M_callVariableTable->getVar(test)->isSet()) {
-      WARNING("Last message generates an error and will not be used for next sends (for last_ variables):
-%s",msg);
+      WARNING("Last message generates an error and will not be used for next sends (for last_ variables):\r\n%s",msg);
     }
 
     /* We are just waiting for a message to be received, if any of the
@@ -3651,27 +3481,21 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
 	if(currentAction->getCheckIt() == true && (strlen(msgPart) < 0)) {
 	  // the sub message is not found and the checking action say it
 	  // MUST match --> Call will be marked as failed but will go on
-	  WARNING("Failed regexp match: header %s not found in message %s
-", currentAction->getLookingChar(), msg);
+	  WARNING("Failed regexp match: header %s not found in message %s\n", currentAction->getLookingChar(), msg);
 	  return(call::E_AR_HDR_NOT_FOUND);
 	}
 	haystack = msgPart;
       } else if(currentAction->getLookingPlace() == CAction::E_LP_BODY) {
-	haystack = strstr(msg, "
-
-");
+	haystack = strstr(msg, "\r\n\r\n");
 	if (!haystack) {
 	  if (currentAction->getCheckIt() == true) {
-	    WARNING("Failed regexp match: body not found in message %s
-", msg);
+	    WARNING("Failed regexp match: body not found in message %s\n", msg);
 	    return(call::E_AR_HDR_NOT_FOUND);
 	  }
-	  msgPart[0] = '';
+	  msgPart[0] = '\0';
 	  haystack = msgPart;
 	}
-	haystack += strlen("
-
-");
+	haystack += strlen("\r\n\r\n");
       } else if(currentAction->getLookingPlace() == CAction::E_LP_MSG) {
 	haystack = msg;
       } else if(currentAction->getLookingPlace() == CAction::E_LP_VAR) {
@@ -3679,14 +3503,12 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
 	haystack = M_callVariableTable->getVar(currentAction->getVarInId())->getString();
 	if (!haystack) {
 	  if (currentAction->getCheckIt() == true) {
-	    WARNING("Failed regexp match: variable $%d not set
-", currentAction->getVarInId());
+	    WARNING("Failed regexp match: variable $%d not set\n", currentAction->getVarInId());
 	    return(call::E_AR_HDR_NOT_FOUND);
 	  }
 	}
       } else {
-	ERROR("Invalid looking place: %d
-", currentAction->getLookingPlace());
+	ERROR("Invalid looking place: %d\n", currentAction->getLookingPlace());
       }
       currentAction->executeRegExp(haystack, M_callVariableTable);
 
@@ -3890,8 +3712,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
       char *lf;
       char *end;
 
-      lf = strchr(msg, '
-');
+      lf = strchr(msg, '\n');
       end = strchr(msg, ' ');
 
       if (!lf || !end) {
@@ -3902,7 +3723,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
 	char *auth = get_header(msg, "Authorization:", true);
 	char *method = (char *)malloc(end - msg + 1);
 	strncpy(method, msg, end - msg);
-	method[end - msg] = '';
+	method[end - msg] = '\0';
 
 	/* Generate the username to verify it against. */
 	char *tmp = createSendingMessage(currentAction->getMessage(0), -2 /* do not add crlf*/);
@@ -3940,8 +3761,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
       double value = M_callVariableTable->getVar(currentAction->getVarId())->getDouble();
       double operand = get_rhs(currentAction);
       if (operand == 0) {
-	WARNING("Action failure: Can not divide by zero ($%d/$%d)!
-", currentAction->getVarId(), currentAction->getVarInId());
+	WARNING("Action failure: Can not divide by zero ($%d/$%d)!\n", currentAction->getVarId(), currentAction->getVarInId());
       } else {
 	M_callVariableTable->getVar(currentAction->getVarId())->setDouble(value / operand);
       }
@@ -3969,7 +3789,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
       var->setString(q);
       int l = strlen(q);
       for (int i = l - 1; i >= 0 & isspace(q[i]); i--) {
-	q[i] = '';
+	q[i] = '\0';
       }
     } else if (currentAction->getActionType() == CAction::E_AT_VAR_TO_DOUBLE) {
       double value;
@@ -3991,8 +3811,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
       M_callVariableTable->getVar(currentAction->getVarId())->setString(str);
     } else if (currentAction->getActionType() == CAction::E_AT_LOG_TO_FILE) {
       char* x = createSendingMessage(currentAction->getMessage(), -2 /* do not add crlf*/);
-      LOG_MSG("%s
-", x);
+      LOG_MSG("%s\n", x);
     } else if (currentAction->getActionType() == CAction::E_AT_LOG_WARNING) {
       char* x = createSendingMessage(currentAction->getMessage(), -2 /* do not add crlf*/);
       WARNING("%s", x);
@@ -4022,7 +3841,7 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
 		WARNING("system call error for %s",x);
 	      }
 	    }
-	    exit(EXIT_OTHER); 
+	    exit(EXIT_OTHER);
 	  }
 	  break;
 	default:
@@ -4107,20 +3926,18 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
  char mat2 = toupper(*matchingString);
 
  ptr = msg;
- while (*ptr) { 
+ while (*ptr) {
    if (!case_indep) {
      ptr = strstr(ptr, matchingString);
      if (ptr == NULL) break;
-     if (headers == true && ptr != msg && *(ptr-1) != '
-') {
+     if (headers == true && ptr != msg && *(ptr-1) != '\n') {
        ++ptr;
-       continue; 
+       continue;
      }
    } else {
      if (headers) {
        if (ptr != msg) {
-         ptr = strchr(ptr, '
-');
+         ptr = strchr(ptr, '\n');
          if (ptr == NULL) break;
          ++ptr;
          if (*ptr == 0) break;
@@ -4132,7 +3949,7 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
          if (ptr1 == NULL) break;
          ptr = ptr1;
        } else {
-         if (ptr1 != NULL && ptr1 < ptr) ptr = ptr1; 
+         if (ptr1 != NULL && ptr1 < ptr) ptr = ptr1;
        }
      }
      if (strncasecmp(ptr, matchingString, len) != 0) {
@@ -4141,7 +3958,7 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
      }
    }
    // here with ptr pointing to a matching string
-   if (occurrence <= 1) break; 
+   if (occurrence <= 1) break;
    --occurrence;
    ++ptr;
  }
@@ -4149,14 +3966,13 @@ void call::extractSubMessage(char * msg, char * matchingString, char* result, bo
  if(ptr != NULL && *ptr != 0) {
    strncpy(result, ptr+len, MAX_SUB_MESSAGE_LENGTH);
     sizeOf = strlen(result);
-    if(sizeOf >= MAX_SUB_MESSAGE_LENGTH)  
+    if(sizeOf >= MAX_SUB_MESSAGE_LENGTH)
       sizeOf = MAX_SUB_MESSAGE_LENGTH-1;
-    while((i<sizeOf) && (result[i] != '
-') && (result[i] != ''))
+    while((i<sizeOf) && (result[i] != '\n') && (result[i] != '\r'))
       i++;
-    result[i] = '';
+    result[i] = '\0';
   } else {
-    result[0] = '';
+    result[0] = '\0';
   }
 }
 
@@ -4191,7 +4007,7 @@ call::T_AutoMode call::checkAutomaticResponseMode(char * P_recv) {
     return E_AM_UNEXP_CANCEL;
   } else if (strcmp(P_recv, "PING") == 0) {
     return E_AM_PING;
-  } else if (((strcmp(P_recv, "INFO") == 0) || (strcmp(P_recv, "NOTIFY") == 0) || (strcmp(P_recv, "UPDATE") == 0)) 
+  } else if (((strcmp(P_recv, "INFO") == 0) || (strcmp(P_recv, "NOTIFY") == 0) || (strcmp(P_recv, "UPDATE") == 0))
                && (auto_answer == true)){
     return E_AM_AA;
   } else {
@@ -4236,7 +4052,7 @@ bool call::automaticResponseMode(T_AutoMode P_case, char * P_recv)
       WARNING("Continuing call on an unexpected BYE for call: %s", (id==NULL)?"none":id);
     }
       break ;
-      
+
   case E_AM_UNEXP_CANCEL: // response for an unexpected cancel
     // usage of last_ keywords
     last_recv_msg = (char *) realloc(last_recv_msg, strlen(P_recv) + 1);
@@ -4249,13 +4065,13 @@ bool call::automaticResponseMode(T_AutoMode P_case, char * P_recv)
       if (default_behaviors & DEFAULT_BEHAVIOR_BYE) {
 	sendBuffer(createSendingMessage(get_default_message("200"), -1));
       }
-    
-    // if twin socket call => reset the other part here 
+
+    // if twin socket call => reset the other part here
     if (twinSippSocket && (msg_index > 0)) {
       res = sendCmdBuffer
       (createSendingMessage(get_default_message("3pcc_abort"), -1));
     }
-    
+
     computeStat(CStat::E_CALL_FAILED);
     computeStat(CStat::E_FAILED_UNEXPECTED_MSG);
     delete this;
@@ -4263,22 +4079,22 @@ bool call::automaticResponseMode(T_AutoMode P_case, char * P_recv)
       WARNING("Continuing call on unexpected CANCEL for call: %s", (id==NULL)?"none":id);
     }
     break ;
-      
+
   case E_AM_PING: // response for a random ping
     // usage of last_ keywords
     last_recv_msg = (char *) realloc(last_recv_msg, strlen(P_recv) + 1);
     strcpy(last_recv_msg, P_recv);
-    
+
    if (default_behaviors & DEFAULT_BEHAVIOR_PINGREPLY) {
     WARNING("Automatic response mode for an unexpected PING for call: %s", (id==NULL)?"none":id);
     sendBuffer(createSendingMessage(get_default_message("200"), -1));
-    // Note: the call ends here but it is not marked as bad. PING is a 
+    // Note: the call ends here but it is not marked as bad. PING is a
     //       normal message.
-    // if twin socket call => reset the other part here 
+    // if twin socket call => reset the other part here
     if (twinSippSocket && (msg_index > 0)) {
       res = sendCmdBuffer(createSendingMessage(get_default_message("3pcc_abort"), -1));
     }
-    
+
     CStat::globalStat(CStat::E_AUTO_ANSWERED);
     delete this;
     } else {
