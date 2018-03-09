@@ -1,3 +1,8 @@
+/**
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+*/
+
 /*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,7 +69,7 @@ int xp_replace(char *source, char *dest, char *search, char *replace)
   occurances = strstr(position, search);
   while (occurances) {
     strncat(dest, position, occurances - position);
-    strcat(dest, replace); 
+    strcat(dest, replace);
     position = occurances + strlen(search);
     occurances = strstr(position, search);
     number++;
@@ -113,16 +118,16 @@ char * xp_find_local_end()
 {
   char * ptr = xp_position[xp_stack];
   int level = 0;
-  
+
   while(*ptr) {
     if (*ptr == '<') {
-      if ((*(ptr+1) == '!') && 
+      if ((*(ptr+1) == '!') &&
           (*(ptr+2) == '[') &&
           (strstr(ptr,"<![CDATA[") == ptr)) {
         char * cdata_end = strstr(ptr, "]]>");
         if(!cdata_end) return NULL;
         ptr = cdata_end + 3;
-      } else if ((*(ptr+1) == '!') && 
+      } else if ((*(ptr+1) == '!') &&
           (*(ptr+2) == '-') &&
           (strstr(ptr,"<!--") == ptr)) {
         char * comment_end = strstr(ptr, "-->");
@@ -166,7 +171,7 @@ int xp_set_xml_buffer_from_string(char * str)
   strcpy(xp_file, str);
   xp_stack = 0;
   xp_position[xp_stack] = xp_file;
-  
+
   if(strstr(xp_position[xp_stack], "<?xml") != xp_position[xp_stack]) return 0;
   if(!strstr(xp_position[xp_stack], "?>")) return 0;
   xp_position[xp_stack] = xp_position[xp_stack] + 2;
@@ -213,13 +218,13 @@ char * xp_open_element(int index)
 
   while(*ptr) {
     if (*ptr == '<') {
-      if ((*(ptr+1) == '!') && 
+      if ((*(ptr+1) == '!') &&
           (*(ptr+2) == '[') &&
           (strstr(ptr,"<![CDATA[") == ptr)) {
         char * cdata_end = strstr(ptr, "]]>");
         if(!cdata_end) return NULL;
         ptr = cdata_end + 2;
-      } else if ((*(ptr+1) == '!') && 
+      } else if ((*(ptr+1) == '!') &&
           (*(ptr+2) == '-') &&
           (strstr(ptr,"<!--") == ptr)) {
         char * comment_end = strstr(ptr, "-->");
@@ -289,14 +294,14 @@ void xp_root()
 char * xp_get_value(const char * name)
 {
   int         index = 0;
-  static char buffer[XP_MAX_FILE_LEN + 1]; 
+  static char buffer[XP_MAX_FILE_LEN + 1];
   char      * ptr, *end, *check;
-  
+
   end = xp_find_start_tag_end(xp_position[xp_stack] + 1);
   if(!end) return NULL;
 
   ptr = xp_position[xp_stack];
-  
+
   while(*ptr) {
     ptr = strstr(ptr, name);
 
@@ -308,24 +313,24 @@ char * xp_get_value(const char * name)
     check = ptr-1;
     if(check >= xp_position[xp_stack])
     {
-      if((*check != '\r') && 
-         (*check != '\n') && 
-         (*check != '\t') && 
+      if((*check != '\r') &&
+         (*check != '\n') &&
+         (*check != '\t') &&
          (*check != ' ' )) { ptr += strlen(name); continue; }
     }
     else
       return(NULL);
 
     ptr += strlen(name);
-    while((*ptr == '\r') || 
-          (*ptr == '\n') || 
-          (*ptr == '\t') || 
+    while((*ptr == '\r') ||
+          (*ptr == '\n') ||
+          (*ptr == '\t') ||
           (*ptr == ' ' )    ) { ptr ++; }
     if(*ptr != '=') continue;
     ptr ++;
-    while((*ptr == '\r') || 
-          (*ptr == '\n') || 
-          (*ptr == '\t') || 
+    while((*ptr == '\r') ||
+          (*ptr == '\n') ||
+          (*ptr == '\t') ||
           (*ptr ==  ' ')    ) { ptr ++; }
     ptr++;
     if(*ptr) {
@@ -370,10 +375,10 @@ char * xp_get_value(const char * name)
 
 char * xp_get_cdata()
 {
-  static char buffer[XP_MAX_FILE_LEN + 1]; 
+  static char buffer[XP_MAX_FILE_LEN + 1];
   char      * end = xp_find_local_end();
   char      * ptr;
-  
+
   ptr = strstr(xp_position[xp_stack],"<![CDATA[");
   if(!ptr) { return NULL; }
   ptr += 9;
@@ -386,10 +391,10 @@ char * xp_get_cdata()
   return buffer;
 }
 
-int xp_get_content_length(char * P_buffer) 
+int xp_get_content_length(char * P_buffer)
 {
   char * L_ctl_hdr;
-  int    L_content_length = -1 ; 
+  int    L_content_length = -1 ;
   unsigned char   short_form;
 
   short_form = 0;
@@ -409,8 +414,8 @@ int xp_get_content_length(char * P_buffer)
     }
     while(isspace(*L_ctl_hdr)) L_ctl_hdr++;
     sscanf(L_ctl_hdr, "%d", &L_content_length);
-  } 
+  }
   // L_content_length = -1 the message does not contain content-length
-  return (L_content_length); 
+  return (L_content_length);
 }
 
