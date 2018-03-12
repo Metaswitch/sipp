@@ -1,4 +1,9 @@
 /*
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+ */
+
+/*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -45,11 +50,11 @@
 
 #define MODE_3PCC_NONE		0
 #define MODE_3PCC_CONTROLLER_A  2
-#define MODE_3PCC_CONTROLLER_B  3   
+#define MODE_3PCC_CONTROLLER_B  3
 #define MODE_3PCC_A_PASSIVE     4
 
 /* 3pcc extended mode*/
-#define MODE_MASTER             5 
+#define MODE_MASTER             5
 #define MODE_MASTER_PASSIVE     6
 #define MODE_SLAVE              7
 
@@ -69,7 +74,7 @@ public:
   bool		timewait;
 
   /* Number of sessions in a pause */
-  int            sessions; 
+  int            sessions;
 
   /* should collect route set? */
   bool           bShouldRecordRoutes;
@@ -137,7 +142,7 @@ public:
       ContentLengthValueZero,
       ContentLengthValueNoZero
   }ContentLengthFlag;
-  
+
   ContentLengthFlag   content_length_flag ;
 
   char           *recv_response_for_cseq_method_list;
@@ -230,7 +235,7 @@ extern int           thirdPartyMode;
 
 extern message::ContentLengthFlag  content_length_flag;
 
-void load_scenario(char * filename, 
+void load_scenario(char * filename,
                    int    deflt);
 
 /* 3pcc extended mode */
@@ -238,11 +243,11 @@ void parse_slave_cfg();
 
 void getActionForThisMessage();
 CSample *parse_distribution(bool oldstyle);
-int  createIntegerTable(char          * P_listeStr, 
-                        unsigned int ** listeInteger, 
+int  createIntegerTable(char          * P_listeStr,
+                        unsigned int ** listeInteger,
                         int           * sizeOfList);
 
-int  isWellFormed(char * P_listeStr, 
+int  isWellFormed(char * P_listeStr,
                   int  * nombre);
 
 /* String table functions. */

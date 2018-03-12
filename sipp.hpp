@@ -1,4 +1,9 @@
 /*
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+ */
+
+/*
 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -82,7 +87,7 @@
 #include "watchdog.hpp"
 /* Open SSL stuff */
 #ifdef _USE_OPENSSL
-#include "sslcommon.h" 
+#include "sslcommon.h"
 #endif
 
 
@@ -96,9 +101,9 @@
 #endif
 #endif
 
-/* 
+/*
  * If this files is included in the Main, then extern definitions
- * are removed, and the _DEFAULT macro becomes '= value;'. Else 
+ * are removed, and the _DEFAULT macro becomes '= value;'. Else
  * extern definition does not contain default values assignment
  */
 
@@ -155,7 +160,7 @@
 #define MAX_PATH                   250
 
 #define MAX_PEER_SIZE              4096  /* 3pcc extended mode: max size of peer names */
-#define MAX_LOCAL_TWIN_SOCKETS     10    /*3pcc extended mode:max number of peers from which 
+#define MAX_LOCAL_TWIN_SOCKETS     10    /*3pcc extended mode:max number of peers from which
                                            cmd messages are received */
 
 /******************** Default parameters ***********************/
@@ -164,7 +169,7 @@
 #define DEFAULT_RATE_SCALE           1.0
 #define DEFAULT_RATE_PERIOD_MS       1000
 #define DEFAULT_TRANSPORT            T_UDP
-#define DEFAULT_PORT                 5060  
+#define DEFAULT_PORT                 5060
 #define DEFAULT_MEDIA_PORT           6000
 #define DEFAULT_3PCC_PORT            6060
 #define DEFAULT_SERVICE              ((char *)"service")
@@ -236,12 +241,12 @@ extern bool		  skip_rlimit		  _DEFVAL(false);
 extern unsigned int       timer_resolution        _DEFVAL(DEFAULT_TIMER_RESOLUTION);
 extern int                max_recv_loops          _DEFVAL(MAX_RECV_LOOPS_PER_CYCLE);
 extern int                max_sched_loops         _DEFVAL(MAX_SCHED_LOOPS_PER_CYCLE);
- 
+
 extern unsigned int       global_t2               _DEFVAL(DEFAULT_T2_TIMER_VALUE);
- 
+
 extern char               local_ip[40];
 extern char               local_ip_escaped[42];
-extern bool               local_ip_is_ipv6;    
+extern bool               local_ip_is_ipv6;
 extern int                local_port              _DEFVAL(0);
 #ifdef USE_SCTP
 extern char               multihome_ip[40];
@@ -264,7 +269,7 @@ extern char               media_ip_escaped[42];
 extern int                user_media_port         _DEFVAL(0);
 extern int                media_port              _DEFVAL(0);
 extern size_t             media_bufsize           _DEFVAL(2048);
-extern bool               media_ip_is_ipv6;    
+extern bool               media_ip_is_ipv6;
 extern char               remote_ip[40];
 extern char               remote_ip_escaped[42];
 extern int                remote_port             _DEFVAL(DEFAULT_PORT);
@@ -276,7 +281,7 @@ extern int                interrupt               _DEFVAL(0);
 extern bool               paused                  _DEFVAL(false);
 extern int                lose_packets            _DEFVAL(0);
 extern double             global_lost             _DEFVAL(0.0);
-extern char               remote_host[255]; 
+extern char               remote_host[255];
 extern char               twinSippHost[255];
 extern char               twinSippIp[40];
 extern char             * master_name;
@@ -285,9 +290,9 @@ extern int                twinSippPort            _DEFVAL(DEFAULT_3PCC_PORT);
 extern bool               twinSippMode            _DEFVAL(false);
 extern bool               extendedTwinSippMode    _DEFVAL(false);
 
-extern bool               nostdin                 _DEFVAL(false);        
-extern bool               backgroundMode          _DEFVAL(false);        
-extern bool               signalDump              _DEFVAL(false);        
+extern bool               nostdin                 _DEFVAL(false);
+extern bool               backgroundMode          _DEFVAL(false);
+extern bool               signalDump              _DEFVAL(false);
 
 extern int                currentScreenToDisplay  _DEFVAL
                                                   (DISPLAY_SCENARIO_SCREEN);
@@ -394,7 +399,7 @@ extern unsigned long watchdog_reset		  _DEFVAL(600000);
 
 
 /********************* dynamic Id ************************* */
-extern  int maxDynamicId    _DEFVAL(12000);  // max value for dynamicId; this value is reached 
+extern  int maxDynamicId    _DEFVAL(12000);  // max value for dynamicId; this value is reached
 extern  int startDynamicId  _DEFVAL(10000);  // offset for first dynamicId  FIXME:in CmdLine
 extern  int stepDynamicId   _DEFVAL(4);      // step of increment for dynamicId
 

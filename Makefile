@@ -1,3 +1,6 @@
+# Some of the content of this file has been edited by Metaswitch, in the time
+# period from December 2012 to the present time.
+
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
@@ -44,7 +47,7 @@ LIBDIR_Darwin=
 # ARCHIVE= $(HOME)/$(OUTPUT).tgz
 ARCHIVE= $(OUTPUT).tgz
 
-# Files to be erased by 'make clean' in addition to the output 
+# Files to be erased by 'make clean' in addition to the output
 # binaries and object files:
 TOCLEAN= *.log $(ARCHIVE) \
          *.csv *.exe
@@ -67,22 +70,22 @@ SYSTEM=$(SYSTEM_$(OSNAME))
 
 # C compiler
 CC_hpux=aCC
-CC_linux=gcc  
-CC_freebsd=cc  
-CC_tru64=cc  
+CC_linux=gcc
+CC_freebsd=cc
+CC_tru64=cc
 CC_SunOS=gcc
-CC_Cygwin=cc  
-CC_Darwin=cc  
+CC_Cygwin=cc
+CC_Darwin=cc
 CC=$(CC_$(SYSTEM))
 
 # C++ compiler mapping
-CPP_hpux=aCC  
-CPP_linux=g++  
-CPP_freebsd=g++  
-CPP_tru64=cxx  
+CPP_hpux=aCC
+CPP_linux=g++
+CPP_freebsd=g++
+CPP_tru64=cxx
 CPP_SunOS=g++
-CPP_Cygwin=g++  
-CPP_Darwin=g++  
+CPP_Cygwin=g++
+CPP_Darwin=g++
 CPP=$(CPP_$(SYSTEM))
 
 #Model specific flags
@@ -100,7 +103,7 @@ MFLAGS=$(MFLAGS_$(MODELNAME))
 # supress warning #829 (Implicit conversion of string literal to
 #'char *' is deprecated) since this is both common and harmless
 CFLAGS_hpux=-D__HPUX -DPROTOTYPES +W829
-CFLAGS_linux=-D__LINUX -pthread 
+CFLAGS_linux=-D__LINUX -pthread
 CFLAGS_freebsd=-D__LINUX -pthread
 CFLAGS_tru64=-D__OSF1 -pthread
 CFLAGS_SunOS=${DEBUG_FLAGS} -D__SUNOS
@@ -109,8 +112,8 @@ CFLAGS_Darwin=-D__DARWIN
 CFLAGS=$(CFLAGS_$(SYSTEM)) $(VERINFO) $(TLS) $(SCTP) $(PCAPPLAY) $(EXTRACFLAGS) $(UNITTEST)
 
 #C++ Compiler Flags
-CPPFLAGS_hpux=-AA -mt -D__HPUX -D_INCLUDE_LONGLONG -DNOMACROS +W829  
-CPPFLAGS_linux=-D__LINUX -pthread 
+CPPFLAGS_hpux=-AA -mt -D__HPUX -D_INCLUDE_LONGLONG -DNOMACROS +W829
+CPPFLAGS_linux=-D__LINUX -pthread
 CPPFLAGS_freebsd=-D__LINUX -pthread
 CPPFLAGS_tru64=-D__OSF1 -pthread
 CPPFLAGS_SunOS=${DEBUG_FLAGS} -D__SUNOS
@@ -156,7 +159,7 @@ INCDIR_tru64=-I. -I/opt/openssl/include
 INCDIR_SunOS=-I. -I/usr/local/ssl/include/
 INCDIR_Cygwin=-I. -I/usr/include/openssl -I/usr/include -I/usr/include/ncurses -I/usr/lib/WpdPack/Include
 INCDIR_Darwin=-I. -I/usr/local/ssl/include
-INCDIR=$(INCDIR_$(SYSTEM)) 
+INCDIR=$(INCDIR_$(SYSTEM))
 
 -include local.mk
 
@@ -217,7 +220,7 @@ debug_pcap_cygwin:
 	@DEBUG_FLAGS=-g ; export DEBUG_FLAGS ; $(MAKE) pcapplay_ossl_cygwin
 
 clean:
-	rm -f *.o $(OUTPUT) *~ $(TOCLEAN) 
+	rm -f *.o $(OUTPUT) *~ $(TOCLEAN)
 	rm -rf cxx_repository
 
 archive:

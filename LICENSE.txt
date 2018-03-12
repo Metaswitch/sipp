@@ -1,3 +1,6 @@
+Some of the content of this file has been edited by Metaswitch, in the time
+period from December 2012 to the present time.
+
 SIPp as a whole is licensed under the GNU General Public License, version 2 or any later version (copy below).
 
 send_packets.c, send_packets.h, md5.c and md5.h have separate copyright

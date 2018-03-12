@@ -1,4 +1,9 @@
 /*
+ * Some of the content of this file has been edited by Metaswitch, in the time
+ * period from December 2012 to the present time.
+ */
+
+/*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -2356,7 +2361,7 @@ void free_socketbuf(struct socketbuf *socketbuf) {
 size_t decompress_if_needed(int sock, char *buff,  size_t len, void **st)
 {
   if(compression && len) {
-    if (useMessagef == 1) {	
+    if (useMessagef == 1) {
     struct timeval currentTime;
     GET_TIME (&currentTime);
     TRACE_MSG("----------------------------------------------- %s\n"
@@ -3217,7 +3222,7 @@ void sipp_socket_invalidate(struct sipp_socket *socket) {
         }
     }
 #endif
-  
+
     sipp_abort_connection(socket->ss_fd);
     socket->ss_fd = -1;
   }
@@ -3256,10 +3261,10 @@ void sipp_socket_invalidate(struct sipp_socket *socket) {
 
 void sipp_abort_connection(int fd) {
   /* Disable linger - we'll send a RST when we close. */
-  struct linger flush; 
-  flush.l_onoff = 1; 
-  flush.l_linger = 0; 
-  setsockopt(fd, SOL_SOCKET, SO_LINGER, &flush, sizeof(flush)); 
+  struct linger flush;
+  flush.l_onoff = 1;
+  flush.l_linger = 0;
+  setsockopt(fd, SOL_SOCKET, SO_LINGER, &flush, sizeof(flush));
 
   /* Mark the socket as non-blocking.  It's not clear whether this is required but can't hurt. */
   int flags = fcntl(fd, F_GETFL, 0);
